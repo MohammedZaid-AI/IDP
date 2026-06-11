@@ -1,6 +1,10 @@
-def confidence_score(valid):
+def confidence_score(validation):
 
-    if valid:
-        return 0.95
+    if not validation["valid"]:
+        return 0.5
 
-    return 0.70
+    issue_count = len(validation["issues"])
+
+    score = 1.0 - (issue_count * 0.1)
+
+    return round(max(score, 0.0), 2)

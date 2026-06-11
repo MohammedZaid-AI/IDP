@@ -6,12 +6,37 @@ def validate_json(data):
 
         obj = json.loads(data)
 
-        if len(obj.keys()) == 0:
+        issues = []
 
-            return False
+        required_fields = [
+            "invoice_number",
+            "invoice_date",
+            "vendor_name",
+            "currency",
+            "total_amount"
+        ]
 
-        return True
+        for field in required_fields:
 
-    except:
+            if field not in obj:
+                issues.append(f"Missing field: {field}")
 
-        return False
+            elif obj[field] is None:
+                issues.append(f"Empty field: {field}")
+
+            elif str(obj[field]).strip() == "":
+                issues.append(f"Empty field: {field}")
+
+        return {
+            "valid": len(issues) == 0,
+            "issues": issues,
+            "data": obj
+        }
+
+    except Exception as e:
+
+        return {
+            "valid": False,
+            "issues": [str(e)],
+            "data": None
+        }

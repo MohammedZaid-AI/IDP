@@ -1,24 +1,30 @@
-INVOICE_SCHEMA = {
-    "invoice_number": None,
-    "invoice_date": None,
-    "vendor_name": None,
-    "currency": None,
-    "subtotal": None,
-    "tax": None,
-    "total_amount": None
+INVOICE_SCHEMA = """
+{
+    "invoice_number": null,
+    "invoice_date": null,
+    "vendor_name": null,
+    "customer_name": null,
+    "currency": null,
+    "subtotal": null,
+    "tax_amount": null,
+    "total_amount": null
 }
+"""
 
-RECEIPT_SCHEMA = {
-    "receipt_number": None,
-    "merchant_name": None,
-    "date": None,
-    "amount": None
+BANK_SCHEMA = """
+{
+    "account_number": null,
+    "bank_name": null,
+    "opening_balance": null,
+    "closing_balance": null
 }
+"""
 
-BANK_STATEMENT_SCHEMA = {
-    "account_number": None,
-    "bank_name": None,
-    "statement_period": None,
-    "opening_balance": None,
-    "closing_balance": None
+RECEIPT_SCHEMA = """
+{
+    "receipt_number": null,
+    "merchant_name": null,
+    "date": null,
+    "amount": null
 }
+"""

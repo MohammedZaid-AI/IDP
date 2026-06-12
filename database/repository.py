@@ -9,6 +9,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from database.crud import create_document, get_document as fetch_document, get_document as fetch_document_detail, search_documents
 from database.db import SessionLocal
 from database.models import AuditLog, Document, Extraction, Review, User
 
@@ -110,86 +111,28 @@ def save_processed_document(
     page_count: int,
     raw_text: str,
     engine: str,
+    raw_llm_response: str = "",
+    validation_result: dict[str, Any] | str | None = None,
+    excel_file_path: str = "",
 ) -> Document:
-    document = Document(
+    return create_document(
+        session,
         filename=filename,
         original_filename=original_filename,
         file_path=file_path,
         document_type=document_type,
         language=language,
-        json_output=_json_payload(json_output),
+        extracted_json=json_output,
         confidence=confidence,
         status=status,
         processing_time=processing_time,
         page_count=page_count,
+        ocr_text=raw_text,
+        raw_llm_response=raw_llm_response,
+        validation_result=validation_result,
+        excel_file_path=excel_file_path,
+        extraction_engine=engine,
     )
-    session.add(document)
-    session.flush()
-    session.add(
-        Extraction(
-            document_id=document.id,
-            raw_text=raw_text,
-            json_output=document.json_output,
-            confidence=confidence,
-            engine=engine,
-        )
-    )
-    session.add(
-        AuditLog(
-            document_id=document.id,
-            actor="system",
-            event_type="processed",
-            payload=_json_payload(
-                {
-                    "document_type": document_type,
-                    "status": status,
-                    "confidence": confidence,
-                    "engine": engine,
-                }
-            ),
-        )
-    )
-    session.commit()
-    session.refresh(document)
-    return document
-
-
-def add_review(
-    session: Session,
-    *,
-    document_id: int,
-    reviewer_name: str,
-    action: str,
-    notes: str = "",
-    edited_json: dict[str, Any] | str | None = None,
-) -> Review:
-    review = Review(
-        document_id=document_id,
-        reviewer_name=reviewer_name,
-        action=action,
-        notes=notes,
-        edited_json=_json_payload(edited_json or {}),
-    )
-    session.add(review)
-    session.add(
-        AuditLog(
-            document_id=document_id,
-            actor=reviewer_name,
-            event_type=f"review_{action}",
-            payload=_json_payload({"notes": notes}),
-        )
-    )
-    document = session.get(Document, document_id)
-    if document is not None:
-        if action == "approve":
-            document.status = "Approved"
-        elif action == "reject":
-            document.status = "Rejected"
-        else:
-            document.status = "Needs Review"
-    session.commit()
-    session.refresh(review)
-    return review
 
 
 def update_document_json(session: Session, document_id: int, json_output: dict[str, Any] | str) -> Document | None:
@@ -211,7 +154,7 @@ def update_document_json(session: Session, document_id: int, json_output: dict[s
 
 
 def get_document(session: Session, document_id: int) -> Document | None:
-    return session.get(Document, document_id)
+    return fetch_document(session, document_id)
 
 
 def list_documents(
@@ -225,47 +168,20 @@ def list_documents(
     page: int = 1,
     page_size: int = 12,
 ) -> tuple[list[Document], int]:
-    query = select(Document).options(selectinload(Document.extractions))
-    if search:
-        like = f"%{search}%"
-        query = query.where(
-            (Document.filename.ilike(like))
-            | (Document.document_type.ilike(like))
-            | (Document.language.ilike(like))
-        )
-    if document_type:
-        query = query.where(Document.document_type == document_type)
-    if status:
-        status_aliases = {
-            "approved": ["approved", "Approved"],
-            "needs_review": ["pending_review", "in_review", "Needs Review"],
-            "pending_review": ["pending_review", "in_review", "Needs Review"],
-            "rejected": ["rejected", "Rejected"],
-        }
-        query = query.where(Document.status.in_(status_aliases.get(status.lower().replace(" ", "_"), [status])))
-    sort_column = getattr(Document, sort, Document.created_at)
-    query = query.order_by(sort_column.desc() if descending else sort_column.asc())
-    total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
-    items = (
-        session.execute(query.offset((page - 1) * page_size).limit(page_size))
-        .scalars()
-        .all()
+    return search_documents(
+        session,
+        search=search,
+        document_type=document_type,
+        status=status,
+        sort=sort,
+        descending=descending,
+        page=page,
+        page_size=page_size,
     )
-    return items, total
-
-
-def list_pending_reviews(session: Session) -> list[Document]:
-    query = select(Document).where(Document.status.in_(["pending_review", "in_review", "Needs Review"])).order_by(Document.created_at.desc())
-    return session.execute(query).scalars().all()
 
 
 def get_document_detail(session: Session, document_id: int) -> Document | None:
-    query = (
-        select(Document)
-        .where(Document.id == document_id)
-        .options(selectinload(Document.extractions), selectinload(Document.reviews), selectinload(Document.audit_logs))
-    )
-    return session.execute(query).scalar_one_or_none()
+    return fetch_document_detail(session, document_id)
 
 
 def dashboard_metrics(session: Session) -> dict[str, Any]:

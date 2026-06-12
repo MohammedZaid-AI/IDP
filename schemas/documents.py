@@ -21,11 +21,16 @@ class DocumentSummary(BaseModel):
     document_type: str
     status: str
     confidence: float
+    excel_file_path: str = ""
     created_at: datetime
 
 
 class DocumentDetail(DocumentSummary):
     json_output: str
+    ocr_text: str = ""
+    raw_llm_response: str = ""
+    extracted_json: str = "{}"
+    validation_result: str = "{}"
     language: str = "unknown"
     processing_time: float = 0.0
     page_count: int = 1
@@ -56,15 +61,9 @@ class ProcessingResult(BaseModel):
     json_output: dict[str, Any]
     raw_text: str
     raw_llm_response: str = ""
+    excel_file_path: str = ""
     processing_time: float
     page_count: int = 1
-
-
-class ReviewDecision(BaseModel):
-    action: str
-    reviewer_name: str = "reviewer"
-    notes: str = ""
-    edited_json: dict[str, Any] | None = None
 
 
 class DashboardMetrics(BaseModel):
@@ -77,10 +76,3 @@ class DashboardMetrics(BaseModel):
     extraction_accuracy: float
     processing_time: float
     validation_failures: int
-
-
-class AnalyticsPayload(BaseModel):
-    documents_by_type: list[dict[str, Any]]
-    daily_processing_trend: list[dict[str, Any]]
-    confidence_distribution: list[float]
-    user_activity: int

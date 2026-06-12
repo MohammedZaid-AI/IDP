@@ -90,11 +90,21 @@
   }
 
   if (browseButton && fileInput) {
-    browseButton.addEventListener("click", () => fileInput.click());
+    browseButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      console.log("Browse clicked");
+      fileInput.click();
+    });
   }
 
   if (addMoreFilesButton && fileInput) {
-    addMoreFilesButton.addEventListener("click", () => fileInput.click());
+    addMoreFilesButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      console.log("Browse clicked");
+      fileInput.click();
+    });
   }
 
   if (clearFilesButton) {
@@ -112,7 +122,13 @@
   }
 
   if (dropZone && fileInput) {
-    dropZone.addEventListener("click", () => fileInput.click());
+    dropZone.addEventListener("click", (event) => {
+      if (event.target === fileInput || event.target.closest?.("button")) {
+        return;
+      }
+      console.log("Browse clicked");
+      fileInput.click();
+    });
     dropZone.addEventListener("dragover", (event) => {
       event.preventDefault();
       dropZone.classList.add("dragover");
@@ -127,8 +143,13 @@
   }
 
   if (fileInput) {
+    fileInput.addEventListener("click", (event) => {
+      event.stopPropagation();
+      console.log("Input clicked");
+    });
     fileInput.addEventListener("change", () => {
       addSelectedFiles(fileInput.files);
+      console.log("Files selected");
       console.log("[upload] files selected", selectedFiles.length);
     });
   }
@@ -270,54 +291,4 @@
       .replace(/'/g, "&#039;");
   }
 
-  function renderChart(canvasId, chartConfig) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas || !window.Chart) return;
-    return new Chart(canvas, chartConfig);
-  }
-
-  const dashboardCharts = window.dashboardCharts;
-  if (dashboardCharts) {
-    const typeLabels = (dashboardCharts.documents_by_type || []).map((item) => item.label);
-    const typeValues = (dashboardCharts.documents_by_type || []).map((item) => item.value);
-    const trendLabels = (dashboardCharts.daily_processing_trend || []).map((item) => item.label);
-    const trendValues = (dashboardCharts.daily_processing_trend || []).map((item) => item.value);
-    const confidenceValues = dashboardCharts.confidence_distribution || [];
-
-    renderChart("typeChart", {
-      type: "doughnut",
-      data: { labels: typeLabels, datasets: [{ data: typeValues, backgroundColor: ["#2563eb", "#0ea5e9", "#8b5cf6", "#14b8a6", "#f59e0b"] }] },
-      options: { plugins: { legend: { position: "bottom" } } },
-    });
-    renderChart("trendChart", {
-      type: "line",
-      data: { labels: trendLabels, datasets: [{ label: "Documents", data: trendValues, borderColor: "#2563eb", tension: 0.35, fill: true, backgroundColor: "rgba(37, 99, 235, 0.16)" }] },
-      options: { plugins: { legend: { display: false } } },
-    });
-    renderChart("confidenceChart", {
-      type: "bar",
-      data: { labels: confidenceValues.map((_, index) => `#${index + 1}`), datasets: [{ label: "Confidence", data: confidenceValues, backgroundColor: "#0ea5e9" }] },
-      options: { plugins: { legend: { display: false } } },
-    });
-  }
-
-  const analyticsCharts = window.analyticsCharts;
-  if (analyticsCharts) {
-    renderChart("analyticsTypeChart", {
-      type: "bar",
-      data: {
-        labels: (analyticsCharts.documents_by_type || []).map((item) => item.label),
-        datasets: [{ label: "Documents", data: (analyticsCharts.documents_by_type || []).map((item) => item.value), backgroundColor: "#2563eb" }],
-      },
-      options: { plugins: { legend: { display: false } } },
-    });
-    renderChart("analyticsTrendChart", {
-      type: "line",
-      data: {
-        labels: (analyticsCharts.daily_processing_trend || []).map((item) => item.label),
-        datasets: [{ label: "Documents", data: (analyticsCharts.daily_processing_trend || []).map((item) => item.value), borderColor: "#0ea5e9", tension: 0.35 }],
-      },
-      options: { plugins: { legend: { display: false } } },
-    });
-  }
 })();

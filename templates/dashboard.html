@@ -1,77 +1,55 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row g-3 mb-4">
-  <div class="col-6 col-xl-3"><div class="metric-card"><div class="metric-label">Total Documents</div><div class="metric-value">{{ metrics.total_documents }}</div></div></div>
-  <div class="col-6 col-xl-3"><div class="metric-card"><div class="metric-label">Approved</div><div class="metric-value text-success">{{ metrics.approved }}</div></div></div>
-  <div class="col-6 col-xl-3"><div class="metric-card"><div class="metric-label">Pending Review</div><div class="metric-value text-warning">{{ metrics.pending_review }}</div></div></div>
-  <div class="col-6 col-xl-3"><div class="metric-card"><div class="metric-label">Rejected</div><div class="metric-value text-danger">{{ metrics.rejected }}</div></div></div>
-</div>
-<div class="row g-3 mb-4">
-  <div class="col-md-4"><div class="metric-card"><div class="metric-label">Average Confidence</div><div class="metric-value">{{ "%.0f"|format(metrics.average_confidence * 100) }}%</div></div></div>
-  <div class="col-md-4"><div class="metric-card"><div class="metric-label">Processed Today</div><div class="metric-value">{{ metrics.documents_today }}</div></div></div>
-  <div class="col-md-4"><div class="metric-card"><div class="metric-label">Processing Time</div><div class="metric-value">{{ metrics.processing_time }}s</div></div></div>
-</div>
+<div class="row justify-content-center">
+  <div class="col-12 col-xl-10">
+    <section class="panel mb-4">
+      <div class="panel-body p-4 p-lg-5 text-center">
+        <div class="text-uppercase text-secondary small fw-semibold mb-3">Intelligent Document Processing</div>
+        <h2 class="fw-bold mb-3">Welcome Back, {{ user_name }}</h2>
+        <p class="text-secondary mb-0">
+          Use the Upload Documents page to process financial documents and store each result in History.
+        </p>
+      </div>
+    </section>
 
-<div class="row g-4">
-  <div class="col-xl-8">
-    <div class="panel">
-      <div class="panel-header">
-        <h5 class="panel-title mb-0">Daily Processing Trend</h5>
-      </div>
-      <div class="panel-body">
-        <canvas id="trendChart" height="110"></canvas>
-      </div>
-    </div>
-  </div>
-  <div class="col-xl-4">
-    <div class="panel h-100">
-      <div class="panel-header">
-        <h5 class="panel-title mb-0">Documents by Type</h5>
-      </div>
-      <div class="panel-body">
-        <canvas id="typeChart" height="220"></canvas>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="row g-4 mt-1">
-  <div class="col-xl-4">
-    <div class="panel">
-      <div class="panel-header"><h5 class="panel-title mb-0">Confidence Distribution</h5></div>
-      <div class="panel-body"><canvas id="confidenceChart" height="220"></canvas></div>
-    </div>
-  </div>
-  <div class="col-xl-8">
-    <div class="panel">
+    <section class="panel">
       <div class="panel-header d-flex justify-content-between align-items-center">
         <h5 class="panel-title mb-0">Recent Documents</h5>
-        <a href="/history" class="btn btn-outline-secondary btn-sm">View all</a>
+        <a class="btn btn-outline-secondary btn-sm" href="/history">View History</a>
       </div>
       <div class="panel-body p-0">
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
-            <thead><tr><th>File</th><th>Type</th><th>Status</th><th>Confidence</th><th>Created</th></tr></thead>
-            <tbody>
-              {% for document in documents %}
+            <thead>
               <tr>
-                <td>{{ document.filename }}</td>
+                <th>Filename</th>
+                <th>Document Type</th>
+                <th>Status</th>
+                <th>Confidence</th>
+                <th>Processed Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for document in recent_documents %}
+              <tr>
+                <td><a class="fw-semibold text-decoration-none" href="/history/{{ document.id }}">{{ document.original_filename or document.filename }}</a></td>
                 <td><span class="badge text-bg-secondary">{{ document.document_type }}</span></td>
                 <td><span class="status-pill status-{{ document.status.lower().replace(' ', '_') }}">{{ document.status.replace('_', ' ') }}</span></td>
                 <td>{{ "%.0f"|format(document.confidence * 100) }}%</td>
-                <td>{{ document.created_at.strftime("%d %b %Y") }}</td>
+                <td>{{ document.created_at.strftime("%d %b %Y, %I:%M %p") }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="5">
+                  <div class="empty-state m-3 text-center">No documents have been processed yet.</div>
+                </td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </div>
-{% endblock %}
-{% block scripts %}
-<script>
-  window.dashboardCharts = {{ analytics | tojson }};
-</script>
 {% endblock %}

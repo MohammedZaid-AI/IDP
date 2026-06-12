@@ -8,10 +8,9 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse, JSONResponse
 
+from database.crud import delete_document, update_document_excel_path
 from database.db import SessionLocal
 from database.repository import (
-    add_review,
-    analytics_payload,
     dashboard_metrics,
     get_document,
     get_document_detail,
@@ -34,12 +33,6 @@ SUPPORTED_UPLOAD_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".bmp",
 def dashboard_metrics_api() -> JSONResponse:
     with SessionLocal() as session:
         return JSONResponse(dashboard_metrics(session))
-
-
-@api_router.get("/analytics")
-def analytics_api() -> JSONResponse:
-    with SessionLocal() as session:
-        return JSONResponse(analytics_payload(session))
 
 
 @api_router.get("/documents")
@@ -90,6 +83,11 @@ def document_detail_api(document_id: int) -> JSONResponse:
                 "confidence": document.confidence,
                 "status": document.status,
                 "json_output": json.loads(document.json_output or "{}"),
+                "ocr_text": document.ocr_text,
+                "raw_llm_response": document.raw_llm_response,
+                "extracted_json": json.loads(document.extracted_json or "{}"),
+                "validation_result": json.loads(document.validation_result or "{}"),
+                "excel_file_path": document.excel_file_path,
                 "processing_time": document.processing_time,
                 "page_count": document.page_count,
                 "created_at": document.created_at.isoformat(),
@@ -153,12 +151,18 @@ async def upload_documents(request: Request) -> JSONResponse:
     excel_url = None
     export_filename = "invoice" if len(files) == 1 else "combined_export"
     if combined_results:
-        print(f"Documents processed: {len(combined_results)}")
-        print(combined_results)
         excel_path = export_service.export_uploaded_records(combined_results, export_filename)
         abs_excel_path = excel_path.resolve()
         LOGGER.info("Excel generated at: %s (exists=%s)", abs_excel_path, abs_excel_path.exists())
         excel_url = f"/api/download-temp?file={abs_excel_path.name}"
+        excel_file_path = str(excel_path)
+        with SessionLocal() as session:
+            for result in results:
+                document_id = result.get("document_id")
+                if document_id is None:
+                    continue
+                update_document_excel_path(session, int(document_id), excel_file_path)
+                result["excel_file_path"] = excel_file_path
 
     LOGGER.info("Upload request completed")
     return JSONResponse({
@@ -228,64 +232,39 @@ def download_temp_file(request: Request) -> FileResponse:
 
 
 
-@api_router.post("/documents/{document_id}/review")
-async def review_document(document_id: int, request: Request) -> JSONResponse:
-    content_type = request.headers.get("content-type", "")
-    if "application/json" in content_type:
-        payload = await request.json()
-    else:
-        form = await request.form()
-        payload = dict(form)
-
-    action = str(payload.get("action", "review"))
-    reviewer_name = str(payload.get("reviewer_name", "reviewer"))
-    notes = str(payload.get("notes", ""))
-    edited_json: dict[str, Any] | None = None
-    raw_json = payload.get("edited_json")
-    if isinstance(raw_json, str) and raw_json.strip():
-        try:
-            edited_json = json.loads(raw_json)
-        except json.JSONDecodeError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="edited_json must be valid JSON") from exc
-    elif isinstance(raw_json, dict):
-        edited_json = raw_json
-
-    with SessionLocal() as session:
-        document = get_document(session, document_id)
-        if document is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
-        if edited_json is not None:
-            document.json_output = json.dumps(edited_json, ensure_ascii=False, indent=2)
-            session.add(document)
-            session.commit()
-        review = add_review(
-            session,
-            document_id=document_id,
-            reviewer_name=reviewer_name,
-            action=action,
-            notes=notes,
-            edited_json=edited_json,
-        )
-        return JSONResponse({"message": "Review saved", "review_id": review.id, "status": document.status})
-
-
 @api_router.get("/documents/{document_id}/download/{export_format}")
 def download_document(document_id: int, export_format: str) -> FileResponse:
     with SessionLocal() as session:
         document = get_document(session, document_id)
         if document is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        if export_format == "xlsx" and document.excel_file_path:
+            excel_path = Path(document.excel_file_path)
+            if excel_path.exists() and excel_path.is_file():
+                return FileResponse(
+                    str(excel_path),
+                    filename=excel_path.name,
+                    media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
         record = {
             "id": document.id,
             "filename": document.filename,
             "document_type": document.document_type,
-            "json_output": json.loads(document.json_output or "{}"),
+            "json_output": json.loads(document.extracted_json or document.json_output or "{}"),
             "confidence": document.confidence,
             "status": document.status,
             "created_at": document.created_at.isoformat(),
         }
         export_path = export_service.export_records([record], export_format=export_format, filename=f"document_{document_id}")
         return FileResponse(str(export_path), filename=export_path.name)
+
+
+@api_router.delete("/documents/{document_id}")
+def delete_document_api(document_id: int) -> JSONResponse:
+    with SessionLocal() as session:
+        if not delete_document(session, document_id):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        return JSONResponse({"message": "Document deleted"})
 
 
 @api_router.get("/export")

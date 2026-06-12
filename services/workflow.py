@@ -99,7 +99,7 @@ class DocumentWorkflow:
         )
         return ProcessingResult(
             document_id=final_state.get("document_id"),
-            filename=final_state["filename"],
+            filename=final_state.get("original_filename", final_state["filename"]),
             document_type=final_state.get("document_type", "invoice"),
             language=final_state.get("language", "english"),
             status=final_state.get("status", "pending_review"),
@@ -109,6 +109,7 @@ class DocumentWorkflow:
             json_output=final_state.get("json_output", {}),
             raw_text=final_state.get("raw_text", ""),
             raw_llm_response=final_state.get("raw_llm_response", ""),
+            excel_file_path=final_state.get("excel_file_path", ""),
             processing_time=elapsed,
             page_count=final_state.get("page_count", 1),
         )
@@ -189,7 +190,7 @@ class DocumentWorkflow:
         with SessionLocal() as session:
             document = save_processed_document(
                 session,
-                filename=state["filename"],
+                filename=state["original_filename"],
                 original_filename=state["original_filename"],
                 file_path=state["file_path"],
                 document_type=state["document_type"],
@@ -200,6 +201,8 @@ class DocumentWorkflow:
                 processing_time=elapsed,
                 page_count=state.get("page_count", 1),
                 raw_text=state.get("raw_text", ""),
+                raw_llm_response=state.get("raw_llm_response", ""),
+                validation_result=state.get("validation", {}),
                 engine=state.get("extraction_engine", "hybrid"),
             )
             state["document_id"] = document.id

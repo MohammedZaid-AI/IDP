@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <a class="btn btn-outline-secondary btn-sm" href="/history">
+    <i class="bi bi-arrow-left me-1"></i>Back to History
+  </a>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-primary btn-sm" href="/api/documents/{{ document.id }}/download/xlsx">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i>Download Excel
+    </a>
+    <form method="post" action="/history/{{ document.id }}/delete" onsubmit="return confirm('Delete this history record?');">
+      <button class="btn btn-outline-danger btn-sm" type="submit">Delete Record</button>
+    </form>
+  </div>
+</div>
+
+<div class="panel mb-4">
+  <div class="panel-body">
+    <div class="row g-3 align-items-start">
+      <div class="col-lg-7">
+        <div class="text-uppercase text-secondary small mb-2">Filename</div>
+        <h3 class="fw-bold mb-0">{{ document.original_filename or document.filename }}</h3>
+      </div>
+      <div class="col-sm-6 col-lg">
+        <div class="text-uppercase text-secondary small mb-2">Document Type</div>
+        <span class="badge text-bg-secondary">{{ document.document_type }}</span>
+      </div>
+      <div class="col-sm-6 col-lg">
+        <div class="text-uppercase text-secondary small mb-2">Status</div>
+        <span class="status-pill status-{{ document.status.lower().replace(' ', '_') }}">{{ document.status.replace('_', ' ') }}</span>
+      </div>
+      <div class="col-sm-6 col-lg">
+        <div class="text-uppercase text-secondary small mb-2">Confidence</div>
+        <div class="fw-semibold">{{ "%.0f"|format(document.confidence * 100) }}%</div>
+      </div>
+      <div class="col-sm-6 col-lg">
+        <div class="text-uppercase text-secondary small mb-2">Created Date</div>
+        <div class="fw-semibold">{{ document.created_at.strftime("%d %b %Y, %I:%M %p") }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-12" id="ocr">
+    <div class="panel">
+      <div class="panel-header"><h5 class="panel-title mb-0">OCR Text</h5></div>
+      <div class="panel-body"><pre class="json-block mb-0">{{ document.ocr_text or (document.extractions[-1].raw_text if document.extractions else '') }}</pre></div>
+    </div>
+  </div>
+  <div class="col-12" id="llm">
+    <div class="panel">
+      <div class="panel-header"><h5 class="panel-title mb-0">Raw LLM Response</h5></div>
+      <div class="panel-body"><pre class="json-block mb-0">{{ document.raw_llm_response }}</pre></div>
+    </div>
+  </div>
+  <div class="col-12" id="validation">
+    <div class="panel">
+      <div class="panel-header"><h5 class="panel-title mb-0">Validation Result</h5></div>
+      <div class="panel-body"><pre class="json-block mb-0">{{ document.validation_result }}</pre></div>
+    </div>
+  </div>
+  <div class="col-12" id="json">
+    <div class="panel">
+      <div class="panel-header"><h5 class="panel-title mb-0">Extracted JSON</h5></div>
+      <div class="panel-body"><pre class="json-block mb-0">{{ document.extracted_json if document.extracted_json != '{}' else document.json_output }}</pre></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

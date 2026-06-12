@@ -1,5 +1,9 @@
-streamlit
-
+fastapi
+starlette
+uvicorn
+jinja2
+python-multipart
+pydantic
 langchain
 langchain-community
 langchain-huggingface

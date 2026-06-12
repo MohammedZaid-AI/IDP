@@ -1,30 +1,8 @@
-from langchain_groq import ChatGroq
-from dotenv import load_dotenv
-load_dotenv()
+from services.classifier import DocumentClassifier
 
-llm = ChatGroq(
-    model="llama-3.3-70b-versatile"
-)
 
-def classify_document(text):
+_classifier = DocumentClassifier()
 
-    prompt = f"""
-    Classify this document.
 
-    Options:
-
-    invoice
-    receipt
-    bank_statement
-    financial_report
-
-    Return only one value.
-
-    Text:
-
-    {text}
-    """
-
-    response = llm.invoke(prompt)
-
-    return response.content.strip().lower()
+def classify_document(text: str) -> str:
+    return _classifier.classify(text).document_type

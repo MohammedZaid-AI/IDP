@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="panel">
+      <div class="panel-header"><h5 class="panel-title mb-0">Platform Settings</h5></div>
+      <div class="panel-body">
+        <form class="row g-3">
+          <div class="col-md-6"><label class="form-label">Default Language</label><input class="form-control" value="English / Arabic"></div>
+          <div class="col-md-6"><label class="form-label">Review Threshold</label><input class="form-control" value="0.82"></div>
+          <div class="col-md-6"><label class="form-label">Qwen Endpoint</label><input class="form-control" placeholder="https://api.example.com/qwen"></div>
+          <div class="col-md-6"><label class="form-label">Groq Fallback</label><input class="form-control" placeholder="Enabled"></div>
+          <div class="col-12"><label class="form-label">PostgreSQL Ready</label><textarea class="form-control" rows="3" disabled>DATABASE_URL can be switched from SQLite to PostgreSQL without changing repository code.</textarea></div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="panel h-100">
+      <div class="panel-header"><h5 class="panel-title mb-0">System Notes</h5></div>
+      <div class="panel-body">
+        <ul class="list-unstyled mb-0 text-secondary">
+          <li class="mb-3">FastAPI routes render server-side templates and power JSON APIs.</li>
+          <li class="mb-3">Qwen2.5-VL is the primary extraction strategy with Groq fallback.</li>
+          <li class="mb-3">SQLite is the initial database, but the repository is database-url driven.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

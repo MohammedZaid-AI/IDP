@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-xl-4">
+    <div class="panel h-100">
+      <div class="panel-header"><h5 class="panel-title mb-0">Review Queue</h5></div>
+      <div class="panel-body p-0">
+        <div class="list-group list-group-flush">
+          {% for document in pending_documents %}
+          <a class="list-group-item list-group-item-action {% if selected_document and document.id == selected_document.id %}active{% endif %}" href="/review?id={{ document.id }}">
+            <div class="d-flex justify-content-between"><strong>{{ document.filename }}</strong><span>{{ "%.0f"|format(document.confidence * 100) }}%</span></div>
+            <div class="small opacity-75">{{ document.document_type }} · {{ document.status.replace('_', ' ') }}</div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-8">
+    <div class="panel">
+      <div class="panel-header"><h5 class="panel-title mb-0">Document Review</h5></div>
+      <div class="panel-body">
+        {% if selected_document %}
+        <div class="row g-3">
+          <div class="col-lg-5">
+            <div class="preview-card">
+              <div class="text-uppercase text-secondary small mb-2">Original Document</div>
+              <div class="fw-semibold">{{ selected_document.filename }}</div>
+              <div class="text-secondary small">Stored file: {{ selected_document.file_path }}</div>
+              <a class="btn btn-outline-primary btn-sm mt-3" href="/api/documents/{{ selected_document.id }}/download/json">Download JSON</a>
+            </div>
+            {% if selected_document.extractions %}
+            <div class="mt-3">
+              <div class="text-uppercase text-secondary small mb-2">OCR Text</div>
+              <pre class="json-block">{{ selected_document.extractions[-1].raw_text }}</pre>
+            </div>
+            {% endif %}
+          </div>
+          <div class="col-lg-7">
+            <form id="reviewForm" method="post" action="/api/documents/{{ selected_document.id }}/review">
+              <input type="hidden" name="reviewer_name" value="reviewer">
+              <div class="mb-3">
+                <label class="form-label">Extracted JSON</label>
+                <textarea class="form-control font-monospace" rows="12" name="edited_json">{{ selected_document.json_output }}</textarea>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <input class="form-control" name="notes" placeholder="Add a review note">
+              </div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-success" name="action" value="approve">Approve</button>
+                <button class="btn btn-danger" name="action" value="reject">Reject</button>
+                <button class="btn btn-outline-primary" name="action" value="edit">Save Edit</button>
+              </div>
+            </form>
+            <div class="mt-4">
+              <div class="text-uppercase text-secondary small mb-2">Validation Results</div>
+              <pre class="json-block">{{ selected_json | tojson(indent=2) }}</pre>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="empty-state">No documents currently waiting for review.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

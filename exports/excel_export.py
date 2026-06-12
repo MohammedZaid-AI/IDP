@@ -1,49 +1,21 @@
-import pandas as pd
+from __future__ import annotations
+
 import json
-import os
+from pathlib import Path
+from typing import Any
 
-MASTER_FILE = "master.xlsx"
+import pandas as pd
 
-def export_excel(data, mode):
+from services.settings import get_settings
 
-    parsed = json.loads(data)
 
-    df = pd.DataFrame([parsed])
-
-    if mode == "Create New Excel":
-
-        path = "output.xlsx"
-
-        df.to_excel(
-            path,
-            index=False
-        )
-
-        return path
-
-    if mode == "Append To Master Excel":
-
-        if os.path.exists(MASTER_FILE):
-
-            existing = pd.read_excel(
-                MASTER_FILE
-            )
-
-            combined = pd.concat(
-                [existing, df],
-                ignore_index=True
-            )
-
-            combined.to_excel(
-                MASTER_FILE,
-                index=False
-            )
-
-        else:
-
-            df.to_excel(
-                MASTER_FILE,
-                index=False
-            )
-
-        return MASTER_FILE
+def export_excel(data: str | dict[str, Any] | list[dict[str, Any]], mode: str) -> str:
+    parsed = json.loads(data) if isinstance(data, str) else data
+    records = parsed if isinstance(parsed, list) else [parsed]
+    print(f"Documents processed: {len(records)}")
+    print(records)
+    frame = pd.DataFrame(records)
+    settings = get_settings()
+    target = settings.exports_dir / ("master.xlsx" if mode == "Append To Master Excel" else "output.xlsx")
+    frame.to_excel(target, index=False)
+    return str(target)

@@ -1,10 +1,7 @@
-import streamlit as st
+from backend.main import app
 
-from pages.upload import upload_page
 
-st.set_page_config(
-    page_title="IDP Platform",
-    layout="wide"
-)
+if __name__ == "__main__":
+    import uvicorn
 
-upload_page()
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)

@@ -1,0 +1,253 @@
+:root {
+  --bg: #f5f7fb;
+  --surface: rgba(255, 255, 255, 0.86);
+  --surface-solid: #ffffff;
+  --surface-2: #eef3ff;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: rgba(17, 24, 39, 0.08);
+  --shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+  --primary: #2563eb;
+  --primary-2: #0ea5e9;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+}
+
+[data-theme="dark"] {
+  --bg: #0b1020;
+  --surface: rgba(17, 24, 39, 0.78);
+  --surface-solid: #111827;
+  --surface-2: #1f2937;
+  --text: #f3f4f6;
+  --muted: #9ca3af;
+  --border: rgba(255, 255, 255, 0.08);
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+body.app-shell {
+  font-family: "Inter", system-ui, sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 30%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 25%),
+    var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.app-background {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(120deg, rgba(255,255,255,0.02) 25%, transparent 25%), linear-gradient(300deg, rgba(255,255,255,0.02) 25%, transparent 25%);
+  background-size: 48px 48px;
+  opacity: 0.25;
+}
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar {
+  width: 290px;
+  padding: 24px;
+  background: var(--surface);
+  backdrop-filter: blur(22px);
+  border-right: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-mark {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  color: white;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.brand-title {
+  font-weight: 700;
+}
+
+.brand-subtitle,
+.panel-subtitle,
+.metric-label,
+.text-secondary {
+  color: var(--muted) !important;
+}
+
+.nav-link {
+  color: var(--text);
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-weight: 600;
+}
+
+.nav-link i {
+  width: 20px;
+  display: inline-block;
+}
+
+.nav-link.active,
+.nav-link:hover {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--primary);
+}
+
+.sidebar-footer {
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.main-area {
+  flex: 1;
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 28px 0;
+}
+
+.page-title {
+  font-size: clamp(1.3rem, 2vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.content {
+  padding-top: 18px;
+  padding-bottom: 36px;
+}
+
+.panel,
+.metric-card,
+.preview-card,
+.drop-zone,
+.empty-state {
+  background: var(--surface);
+  backdrop-filter: blur(22px);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+}
+
+.panel-header,
+.panel-body {
+  padding: 20px;
+}
+
+.panel-header {
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-title {
+  font-weight: 700;
+}
+
+.metric-card {
+  padding: 22px;
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.metric-value {
+  font-size: clamp(1.7rem, 2.7vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.drop-zone {
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed rgba(37, 99, 235, 0.28);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.drop-zone.dragover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.drop-zone-inner {
+  text-align: center;
+  padding: 20px;
+}
+
+.status-pill {
+  padding: 0.34rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.status-approved {
+  background: rgba(22, 163, 74, 0.14);
+  color: var(--success);
+}
+
+.status-pending_review,
+.status-in_review,
+.status-needs_review {
+  background: rgba(217, 119, 6, 0.14);
+  color: var(--warning);
+}
+
+.status-rejected {
+  background: rgba(220, 38, 38, 0.14);
+  color: var(--danger);
+}
+
+.preview-card,
+.empty-state {
+  padding: 22px;
+}
+
+.json-block {
+  background: var(--surface-2);
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  max-height: 420px;
+  overflow: auto;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.mobile-nav .nav-link {
+  color: var(--text);
+}
+
+@media (max-width: 991.98px) {
+  .topbar {
+    padding: 20px 18px 0;
+  }
+
+  .content {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}

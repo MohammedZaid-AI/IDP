@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="metric-card"><div class="metric-label">Extraction Accuracy</div><div class="metric-value">{{ metrics.extraction_accuracy }}%</div></div></div>
+  <div class="col-md-3"><div class="metric-card"><div class="metric-label">Validation Failures</div><div class="metric-value text-danger">{{ metrics.validation_failures }}</div></div></div>
+  <div class="col-md-3"><div class="metric-card"><div class="metric-label">Processing Volume</div><div class="metric-value">{{ metrics.total_documents }}</div></div></div>
+  <div class="col-md-3"><div class="metric-card"><div class="metric-label">User Activity</div><div class="metric-value">{{ analytics.user_activity }}</div></div></div>
+</div>
+<div class="row g-4">
+  <div class="col-lg-6"><div class="panel"><div class="panel-header"><h5 class="panel-title mb-0">Documents by Type</h5></div><div class="panel-body"><canvas id="analyticsTypeChart"></canvas></div></div></div>
+  <div class="col-lg-6"><div class="panel"><div class="panel-header"><h5 class="panel-title mb-0">Daily Processing Trend</h5></div><div class="panel-body"><canvas id="analyticsTrendChart"></canvas></div></div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  window.analyticsCharts = {{ analytics | tojson }};
+</script>
+{% endblock %}

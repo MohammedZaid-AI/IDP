@@ -1,10 +1,11 @@
-def confidence_score(validation):
+from __future__ import annotations
 
-    if not validation["valid"]:
-        return 0.5
 
-    issue_count = len(validation["issues"])
-
-    score = 1.0 - (issue_count * 0.1)
-
-    return round(max(score, 0.0), 2)
+def confidence_score(validation: dict) -> float:
+    if not validation.get("valid", False):
+        base = validation.get("score", 0.5)
+        return round(float(min(base, 0.6)), 2)
+    score = float(validation.get("score", 0.85))
+    issue_count = len(validation.get("issues", []))
+    adjusted = max(0.0, min(1.0, score - (issue_count * 0.03)))
+    return round(adjusted, 2)

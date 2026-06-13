@@ -31,7 +31,6 @@ class WorkflowState(TypedDict, total=False):
     filename: str
     original_filename: str
     document_type: str
-    language: str
     json_output: dict[str, Any]
     raw_text: str
     raw_llm_response: str
@@ -101,7 +100,6 @@ class DocumentWorkflow:
             document_id=final_state.get("document_id"),
             filename=final_state.get("original_filename", final_state["filename"]),
             document_type=final_state.get("document_type", "invoice"),
-            language=final_state.get("language", "english"),
             status=final_state.get("status", "pending_review"),
             confidence=float(final_state.get("confidence", 0.0)),
             extraction_engine=final_state.get("extraction_engine", "hybrid"),
@@ -139,7 +137,6 @@ class DocumentWorkflow:
         sample_text = state.get("raw_text", "").strip() or f"{Path(state['file_path']).stem} {state['filename']}"
         document_type = classify_document(sample_text)
         state["document_type"] = document_type
-        state["language"] = "english"
         LOGGER.info("Classification Completed")
         LOGGER.info("Classification stage completed with document_type=%s", document_type)
         return state
@@ -194,7 +191,6 @@ class DocumentWorkflow:
                 original_filename=state["original_filename"],
                 file_path=state["file_path"],
                 document_type=state["document_type"],
-                language=state.get("language", "english"),
                 json_output=state.get("json_output", {}),
                 confidence=state.get("confidence", 0.0),
                 status=state.get("status", "pending_review"),

@@ -31,7 +31,6 @@ class DocumentDetail(DocumentSummary):
     raw_llm_response: str = ""
     extracted_json: str = "{}"
     validation_result: str = "{}"
-    language: str = "unknown"
     processing_time: float = 0.0
     page_count: int = 1
 
@@ -53,7 +52,6 @@ class ProcessingResult(BaseModel):
     document_id: int | None = None
     filename: str
     document_type: str
-    language: str
     status: str
     confidence: float
     extraction_engine: str

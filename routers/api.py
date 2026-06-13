@@ -79,7 +79,6 @@ def document_detail_api(document_id: int) -> JSONResponse:
                 "id": document.id,
                 "filename": document.filename,
                 "document_type": document.document_type,
-                "language": document.language,
                 "confidence": document.confidence,
                 "status": document.status,
                 "json_output": json.loads(document.json_output or "{}"),

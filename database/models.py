@@ -27,7 +27,6 @@ class Document(Base):
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     file_path: Mapped[str] = mapped_column(String(500), nullable=False, default="")
     document_type: Mapped[str] = mapped_column(String(100), nullable=False, default="unknown")
-    language: Mapped[str] = mapped_column(String(50), nullable=False, default="unknown")
     json_output: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     ocr_text: Mapped[str] = mapped_column(Text, nullable=False, default="")
     raw_llm_response: Mapped[str] = mapped_column(Text, nullable=False, default="")

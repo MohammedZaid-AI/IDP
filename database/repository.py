@@ -38,7 +38,6 @@ def seed_demo_data() -> Session:
                 original_filename="sample-invoice.pdf",
                 file_path="uploads/sample-invoice.pdf",
                 document_type="invoice",
-                language="english",
                 json_output=_json_payload(
                     {
                         "invoice_number": "INV-1001",
@@ -103,7 +102,6 @@ def save_processed_document(
     original_filename: str,
     file_path: str,
     document_type: str,
-    language: str,
     json_output: dict[str, Any] | str,
     confidence: float,
     status: str,
@@ -121,7 +119,6 @@ def save_processed_document(
         original_filename=original_filename,
         file_path=file_path,
         document_type=document_type,
-        language=language,
         extracted_json=json_output,
         confidence=confidence,
         status=status,

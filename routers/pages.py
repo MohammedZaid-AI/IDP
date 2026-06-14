@@ -1,17 +1,27 @@
 from __future__ import annotations
 
+from html import escape
 from math import ceil
 from pathlib import Path
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Request
-from fastapi.responses import RedirectResponse
+import json
+from datetime import datetime, date, timedelta
+from fastapi import APIRouter, HTTPException, Request, status
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, PlainTextResponse
 from sqlalchemy import select
 from starlette.templating import Jinja2Templates
 
-from database.crud import delete_document, get_all_documents, get_document, search_documents
+from database.crud import (
+    delete_document,
+    get_all_documents,
+    get_document,
+    search_documents,
+    list_processing_sessions,
+    get_processing_session,
+)
 from database.db import SessionLocal
-from database.models import User
+from database.models import User, ProcessingSession, Document
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,15 +37,54 @@ def root(request: Request) -> RedirectResponse:
 
 @pages_router.get("/dashboard")
 def dashboard_page(request: Request):
+    session_id_param = request.query_params.get("session_id")
+    active_session_id = int(session_id_param) if session_id_param and session_id_param.isdigit() else None
+    
     with SessionLocal() as session:
-        recent_documents, _ = get_all_documents(session, page=1, page_size=5)
+        db_sessions = list_processing_sessions(session)
+        utc_today = datetime.utcnow().date()
+        utc_yesterday = utc_today - timedelta(days=1)
+        
+        grouped_sessions = {
+            "today": [],
+            "yesterday": [],
+            "older": []
+        }
+        
+        for s in db_sessions:
+            s_date = s.created_at.date()
+            if s_date == utc_today:
+                grouped_sessions["today"].append(s)
+            elif s_date == utc_yesterday:
+                grouped_sessions["yesterday"].append(s)
+            else:
+                grouped_sessions["older"].append(s)
+                
+        active_session = None
+        documents = []
+        if active_session_id:
+            active_session = get_processing_session(session, active_session_id)
+            if active_session:
+                documents = active_session.documents
+            else:
+                return RedirectResponse(url="/dashboard", status_code=303)
+                
+        excel_url = None
+        if active_session and active_session.excel_file_path:
+            excel_path = Path(active_session.excel_file_path)
+            if excel_path.exists() and excel_path.is_file():
+                excel_url = f"/api/download-temp?file={excel_path.name}"
+                
         return templates.TemplateResponse(
             request,
             "dashboard.html",
             {
-                "page_title": "Dashboard",
+                "page_title": active_session.name if active_session else "IDP Platform",
                 "user_name": _resolve_user_name(request, session),
-                "recent_documents": recent_documents,
+                "grouped_sessions": grouped_sessions,
+                "active_session": active_session,
+                "documents": documents,
+                "excel_url": excel_url,
             },
         )
 
@@ -55,81 +104,35 @@ def _resolve_user_name(request: Request, session) -> str:
     return user.name if user else "User"
 
 
-@pages_router.get("/upload")
-def upload_page(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "upload.html",
-        {
-            "page_title": "Upload Documents",
-        },
-    )
-
-
-@pages_router.get("/history")
-def history_page(request: Request):
-    params = request.query_params
-    page = int(params.get("page", 1))
-    page_size = int(params.get("page_size", 10))
-    pagination_params = dict(params)
-    pagination_params.pop("page", None)
-    pagination_query = urlencode({key: value for key, value in pagination_params.items() if value})
-    with SessionLocal() as session:
-        documents, total = search_documents(
-            session,
-            search=params.get("search") or None,
-            document_type=params.get("document_type") or None,
-            status=params.get("status") or None,
-            date_from=params.get("date_from") or None,
-            date_to=params.get("date_to") or None,
-            sort=params.get("sort", "created_at"),
-            page=page,
-            page_size=page_size,
-        )
-        return templates.TemplateResponse(
-            request,
-            "history.html",
-            {
-                "page_title": "Document History",
-                "documents": documents,
-                "page": page,
-                "page_size": page_size,
-                "total": total,
-                "total_pages": max(1, ceil(total / page_size)) if page_size else 1,
-                "pagination_query": pagination_query,
-            },
-        )
-
-
-@pages_router.get("/history/{document_id}")
-def document_detail_page(request: Request, document_id: int):
-    with SessionLocal() as session:
-        document = get_document(session, document_id)
-        if document is None:
-            return RedirectResponse(url="/history", status_code=303)
-        return templates.TemplateResponse(
-            request,
-            "document_detail.html",
-            {
-                "page_title": document.filename,
-                "document": document,
-            },
-        )
-
-
-@pages_router.post("/history/{document_id}/delete")
-def delete_history_record(document_id: int):
-    with SessionLocal() as session:
-        delete_document(session, document_id)
-    return RedirectResponse(url="/history", status_code=303)
-
-
 @pages_router.get("/settings")
 def settings_page(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "settings.html",
-        {
-            "page_title": "Settings",
-        },
-    )
+    with SessionLocal() as session:
+        db_sessions = list_processing_sessions(session)
+        utc_today = datetime.utcnow().date()
+        utc_yesterday = utc_today - timedelta(days=1)
+        
+        grouped_sessions = {
+            "today": [],
+            "yesterday": [],
+            "older": []
+        }
+        
+        for s in db_sessions:
+            s_date = s.created_at.date()
+            if s_date == utc_today:
+                grouped_sessions["today"].append(s)
+            elif s_date == utc_yesterday:
+                grouped_sessions["yesterday"].append(s)
+            else:
+                grouped_sessions["older"].append(s)
+                
+        return templates.TemplateResponse(
+            request,
+            "settings.html",
+            {
+                "page_title": "Settings",
+                "user_name": _resolve_user_name(request, session),
+                "grouped_sessions": grouped_sessions,
+                "active_session": None,
+            },
+        )

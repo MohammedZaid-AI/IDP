@@ -185,8 +185,12 @@
           throw new Error(responseText || `Upload failed with status ${response.status}`);
         }
         const payload = JSON.parse(responseText);
-        renderUploadResults(payload.results || [], payload.excel_url, payload.excel_filename);
-        setUploadStatus(`Processed ${payload.results?.length || 0} document(s) successfully.`, "success");
+        if (payload.session_id) {
+          window.location.href = `/dashboard?session_id=${payload.session_id}`;
+        } else {
+          renderUploadResults(payload.results || [], payload.excel_url, payload.excel_filename);
+          setUploadStatus(`Processed ${payload.results?.length || 0} document(s) successfully.`, "success");
+        }
       } catch (error) {
         console.error("[upload] request failed", error);
         setUploadStatus(error.message || "Upload failed.", "danger");

@@ -251,3 +251,121 @@ body.app-shell {
     padding-right: 12px;
   }
 }
+
+/* ChatGPT Sessions Redesign Styles */
+.session-history {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(37, 99, 235, 0.2) transparent;
+}
+
+.session-history::-webkit-scrollbar {
+  width: 4px;
+}
+
+.session-history::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.2);
+  border-radius: 4px;
+}
+
+.session-group-title {
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.session-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 10px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  position: relative;
+  background: transparent;
+}
+
+.session-item-row:hover {
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.session-item-row.active-session-item {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--primary) !important;
+}
+
+.session-item-row.active-session-item .session-link {
+  color: var(--primary) !important;
+  font-weight: 600;
+}
+
+.session-link {
+  color: var(--text);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 80%;
+}
+
+.delete-session-btn {
+  opacity: 0;
+  pointer-events: none;
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  padding: 0 4px;
+}
+
+.session-item-row:hover .delete-session-btn {
+  opacity: 0.7;
+  pointer-events: auto;
+}
+
+.session-item-row:hover .delete-session-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Collapsible Panel Styles */
+.collapsible-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.collapsible-trigger {
+  color: var(--text);
+  font-size: 0.92rem;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.collapsible-trigger:hover {
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.collapsible-trigger[aria-expanded="true"] {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.collapsible-trigger[aria-expanded="true"] .trigger-arrow {
+  transform: rotate(180deg);
+}
+
+.trigger-arrow {
+  transition: transform 0.2s ease;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.collapsible-content {
+  background: var(--surface-solid);
+}
+

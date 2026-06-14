@@ -8,8 +8,14 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse, JSONResponse
 
-from database.crud import delete_document, update_document_excel_path
+from database.crud import (
+    delete_document,
+    update_document_excel_path,
+    create_processing_session,
+    delete_processing_session,
+)
 from database.db import SessionLocal
+from database.models import ProcessingSession, Document
 from database.repository import (
     dashboard_metrics,
     get_document,
@@ -121,6 +127,19 @@ async def upload_documents(request: Request) -> JSONResponse:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No files uploaded")
 
     LOGGER.info("Upload request received with %s file(s)", len(files))
+
+    # 1. Generate session name
+    first_filename = Path(files[0].filename or "Document").name
+    if len(files) == 1:
+        session_name = first_filename
+    else:
+        session_name = f"{first_filename} and {len(files) - 1} other files"
+
+    # 2. Create the session in the database
+    with SessionLocal() as session:
+        db_session = create_processing_session(session, name=session_name)
+        session_id = db_session.id
+
     results: list[dict[str, Any]] = []
     combined_results: list[dict[str, Any]] = []
     for upload in files:
@@ -146,7 +165,14 @@ async def upload_documents(request: Request) -> JSONResponse:
             )
         )
         LOGGER.info("Processing completed for %s with status=%s", original_filename, result.status)
-    
+
+        # 3. Associate document with the session_id
+        with SessionLocal() as session:
+            db_doc = session.get(Document, result.document_id)
+            if db_doc:
+                db_doc.session_id = session_id
+                session.commit()
+
     excel_url = None
     export_filename = "invoice" if len(files) == 1 else "combined_export"
     if combined_results:
@@ -156,19 +182,25 @@ async def upload_documents(request: Request) -> JSONResponse:
         excel_url = f"/api/download-temp?file={abs_excel_path.name}"
         excel_file_path = str(excel_path)
         with SessionLocal() as session:
+            # Update excel path on the session itself
+            db_sess = session.get(ProcessingSession, session_id)
+            if db_sess:
+                db_sess.excel_file_path = excel_file_path
+                session.commit()
+            # Update excel path on each document as well
             for result in results:
                 document_id = result.get("document_id")
-                if document_id is None:
-                    continue
-                update_document_excel_path(session, int(document_id), excel_file_path)
-                result["excel_file_path"] = excel_file_path
+                if document_id is not None:
+                    update_document_excel_path(session, int(document_id), excel_file_path)
+                    result["excel_file_path"] = excel_file_path
 
     LOGGER.info("Upload request completed")
     return JSONResponse({
         "message": "Documents processed",
         "results": results,
         "excel_url": excel_url,
-        "excel_filename": f"{export_filename}.xlsx"
+        "excel_filename": f"{export_filename}.xlsx",
+        "session_id": session_id,
     })
 
 
@@ -291,3 +323,12 @@ def bulk_export(request: Request) -> FileResponse:
             )
         export_path = export_service.export_records(records, export_format=export_format, filename="documents_export")
         return FileResponse(str(export_path), filename=export_path.name)
+
+
+@api_router.post("/sessions/{session_id}/delete")
+def delete_session_api(session_id: int) -> JSONResponse:
+    with SessionLocal() as session:
+        if not delete_processing_session(session, session_id):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        return JSONResponse({"message": "Session deleted"})
+

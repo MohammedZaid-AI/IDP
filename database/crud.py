@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from database.models import AuditLog, Document, Extraction
+from database.models import AuditLog, Document, Extraction, ProcessingSession
 
 
 def _json_payload(value: Any) -> str:
@@ -33,10 +33,12 @@ def create_document(
     processing_time: float = 0.0,
     page_count: int = 1,
     extraction_engine: str = "hybrid",
+    session_id: int | None = None,
 ) -> Document:
     extracted_json_payload = _json_payload(extracted_json)
     validation_payload = _json_payload(validation_result or {})
     document = Document(
+        session_id=session_id,
         filename=filename,
         original_filename=original_filename or filename,
         file_path=file_path,
@@ -172,3 +174,35 @@ def _date_start(value: str | date) -> datetime:
 def _date_end(value: str | date) -> datetime:
     parsed = date.fromisoformat(value) if isinstance(value, str) else value
     return datetime.combine(parsed, time.max)
+
+
+def create_processing_session(session: Session, name: str, excel_file_path: str = "") -> ProcessingSession:
+    db_session = ProcessingSession(name=name, excel_file_path=excel_file_path)
+    session.add(db_session)
+    session.commit()
+    session.refresh(db_session)
+    return db_session
+
+
+def get_processing_session(session: Session, session_id: int) -> ProcessingSession | None:
+    query = (
+        select(ProcessingSession)
+        .where(ProcessingSession.id == session_id)
+        .options(selectinload(ProcessingSession.documents))
+    )
+    return session.execute(query).scalar_one_or_none()
+
+
+def list_processing_sessions(session: Session) -> list[ProcessingSession]:
+    query = select(ProcessingSession).order_by(ProcessingSession.created_at.desc())
+    return list(session.execute(query).scalars().all())
+
+
+def delete_processing_session(session: Session, session_id: int) -> bool:
+    db_session = session.get(ProcessingSession, session_id)
+    if db_session is None:
+        return False
+    session.delete(db_session)
+    session.commit()
+    return True
+

@@ -19,10 +19,22 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class ProcessingSession(Base):
+    __tablename__ = "processing_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    excel_file_path: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    documents: Mapped[list["Document"]] = relationship("Document", back_populates="session", cascade="all, delete-orphan")
+
+
 class Document(Base):
     __tablename__ = "documents"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    session_id: Mapped[int | None] = mapped_column(ForeignKey("processing_sessions.id", ondelete="CASCADE"), nullable=True, index=True)
     filename: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     file_path: Mapped[str] = mapped_column(String(500), nullable=False, default="")
@@ -40,6 +52,7 @@ class Document(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    session: Mapped[ProcessingSession | None] = relationship("ProcessingSession", back_populates="documents")
     extractions: Mapped[list["Extraction"]] = relationship("Extraction", back_populates="document", cascade="all, delete-orphan")
     reviews: Mapped[list["Review"]] = relationship("Review", back_populates="document", cascade="all, delete-orphan")
     audit_logs: Mapped[list["AuditLog"]] = relationship("AuditLog", back_populates="document", cascade="all, delete-orphan")

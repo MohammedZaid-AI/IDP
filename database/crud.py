@@ -198,6 +198,17 @@ def list_processing_sessions(session: Session) -> list[ProcessingSession]:
     return list(session.execute(query).scalars().all())
 
 
+def list_recent_sessions(session: Session, limit: int = 10) -> list[ProcessingSession]:
+    """Fetch the N most recent sessions with documents eagerly loaded (for sidebar)."""
+    query = (
+        select(ProcessingSession)
+        .options(selectinload(ProcessingSession.documents))
+        .order_by(ProcessingSession.created_at.desc())
+        .limit(limit)
+    )
+    return list(session.execute(query).scalars().all())
+
+
 def delete_processing_session(session: Session, session_id: int) -> bool:
     db_session = session.get(ProcessingSession, session_id)
     if db_session is None:

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login - IDP Platform</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ request.url_for('static', path='css/app.css') }}">
+  <style>
+    :root {
+      --bg: #0b1020;
+      --surface: rgba(17, 24, 39, 0.78);
+      --surface-solid: #111827;
+      --surface-2: #1f2937;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --border: rgba(255, 255, 255, 0.08);
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      --primary: #2563eb;
+      --primary-2: #0ea5e9;
+    }
+
+    body.login-page {
+      background: radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.15), transparent 40%),
+                  radial-gradient(circle at 90% 80%, rgba(14, 165, 233, 0.12), transparent 45%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Inter", sans-serif;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auth-bg-animation {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .auth-bubble {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.45;
+      animation: float 20s infinite alternate ease-in-out;
+    }
+
+    .auth-bubble-1 {
+      width: 300px;
+      height: 300px;
+      background: var(--primary);
+      top: -50px;
+      left: -50px;
+    }
+
+    .auth-bubble-2 {
+      width: 250px;
+      height: 250px;
+      background: var(--primary-2);
+      bottom: -50px;
+      right: -50px;
+      animation-delay: -5s;
+    }
+
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(60px, 40px) scale(1.15); }
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--surface);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 48px 40px;
+      z-index: 1;
+      position: relative;
+      text-align: center;
+    }
+
+    .login-logo {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      color: white;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 1.25rem;
+      margin: 0 auto 24px;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+    }
+
+    .login-title {
+      font-weight: 800;
+      font-size: 1.5rem;
+      letter-spacing: -0.04em;
+      margin-bottom: 32px;
+    }
+
+    .btn-google-signin {
+      background: #ffffff;
+      border: none;
+      color: #111827;
+      border-radius: 14px;
+      padding: 13px 24px;
+      font-weight: 600;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-google-signin:hover {
+      background: #f3f4f6;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-google-signin:active {
+      transform: translateY(0);
+    }
+
+    .btn-google-signin:disabled {
+      background: #374151;
+      color: #9ca3af;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .config-error-alert {
+      background: rgba(220, 38, 38, 0.12);
+      border: 1px solid rgba(220, 38, 38, 0.25);
+      color: #f87171;
+      border-radius: 14px;
+      padding: 16px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body class="login-page">
+  <div class="auth-bg-animation">
+    <div class="auth-bubble auth-bubble-1"></div>
+    <div class="auth-bubble auth-bubble-2"></div>
+  </div>
+
+  <div class="login-card">
+    <div class="login-logo">IDP</div>
+    <h2 class="login-title">Sign in to IDP Platform</h2>
+
+    {% if error %}
+      <div class="config-error-alert d-flex align-items-center justify-content-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>{{ error }}</span>
+      </div>
+    {% endif %}
+
+    {% if not configured %}
+      <div class="config-error-alert d-flex align-items-center justify-content-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>Google OAuth is not configured.</span>
+      </div>
+    {% endif %}
+
+    <a href="/auth/google" class="btn btn-google-signin text-decoration-none" {% if not configured %}style="pointer-events: none; opacity: 0.4;" tabindex="-1"{% endif %}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+      </svg>
+      <span>Continue with Google</span>
+    </a>
+  </div>
+</body>
+</html>

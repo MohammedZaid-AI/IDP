@@ -252,84 +252,171 @@ body.app-shell {
   }
 }
 
-/* ChatGPT Sessions Redesign Styles */
-.session-history {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(37, 99, 235, 0.2) transparent;
+/* ── Sidebar Session History (ChatGPT-style) ── */
+
+.sidebar-sessions-section {
+  overflow: hidden;
 }
 
-.session-history::-webkit-scrollbar {
-  width: 4px;
-}
-
-.session-history::-webkit-scrollbar-thumb {
-  background: rgba(37, 99, 235, 0.2);
-  border-radius: 4px;
-}
-
-.session-group-title {
+.sidebar-sessions-label {
   color: var(--muted);
-  letter-spacing: 0.05em;
+  font-size: 0.7rem;
   font-weight: 700;
-  margin-top: 1.25rem;
-  margin-bottom: 0.5rem;
-}
-
-.session-item-row {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 4px 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
+}
+
+.sidebar-sessions-list {
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  /* Thin scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(37, 99, 235, 0.15) transparent;
+}
+
+.sidebar-sessions-list::-webkit-scrollbar {
+  width: 3px;
+}
+
+.sidebar-sessions-list::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.15);
+  border-radius: 3px;
+}
+
+.sidebar-sessions-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(37, 99, 235, 0.3);
+}
+
+/* Session card */
+.sidebar-session-card {
+  display: block;
+  text-decoration: none;
+  color: var(--text);
   border-radius: 10px;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.18s ease, transform 0.15s ease;
   position: relative;
-  background: transparent;
 }
 
-.session-item-row:hover {
+.sidebar-session-card:hover {
   background: rgba(37, 99, 235, 0.06);
+  text-decoration: none;
+  color: var(--text);
 }
 
-.session-item-row.active-session-item {
+.sidebar-session-card.active {
   background: rgba(37, 99, 235, 0.12);
-  color: var(--primary) !important;
 }
 
-.session-item-row.active-session-item .session-link {
-  color: var(--primary) !important;
+.sidebar-session-card.active .sidebar-session-name {
+  color: var(--primary);
   font-weight: 600;
 }
 
-.session-link {
-  color: var(--text);
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 80%;
+.sidebar-session-card.active .sidebar-session-icon {
+  color: var(--primary);
 }
 
-.delete-session-btn {
+.sidebar-session-card-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+}
+
+.sidebar-session-icon {
+  font-size: 1rem;
+  color: var(--muted);
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+  transition: color 0.18s ease;
+}
+
+.sidebar-session-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-session-name {
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.18s ease;
+}
+
+.sidebar-session-meta {
+  font-size: 0.68rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 1px;
+}
+
+.sidebar-session-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--muted);
+  display: inline-block;
+}
+
+/* Delete button - appears on hover */
+.sidebar-session-card .delete-session-btn {
   opacity: 0;
   pointer-events: none;
   background: transparent;
   border: none;
   color: var(--danger);
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  padding: 0 4px;
+  font-size: 0.78rem;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: opacity 0.18s ease, background-color 0.15s ease;
+  flex-shrink: 0;
+  cursor: pointer;
 }
 
-.session-item-row:hover .delete-session-btn {
-  opacity: 0.7;
+.sidebar-session-card:hover .delete-session-btn {
+  opacity: 0.6;
   pointer-events: auto;
 }
 
-.session-item-row:hover .delete-session-btn:hover {
+.sidebar-session-card:hover .delete-session-btn:hover {
   opacity: 1;
-  transform: scale(1.1);
+  background: rgba(220, 38, 38, 0.1);
 }
 
-/* Collapsible Panel Styles */
+/* Empty state */
+.sidebar-sessions-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 16px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.sidebar-sessions-empty i {
+  font-size: 1.5rem;
+  opacity: 0.5;
+}
+
+/* ── Collapsible Panel Styles ── */
 .collapsible-card {
   background: var(--surface-2);
   border: 1px solid var(--border);

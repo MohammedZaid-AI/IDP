@@ -16,6 +16,15 @@ sentence-transformers
 easyocr
 opencv-python
 pymupdf
+langgraph
+langchain-groq
+
+chromadb
+sentence-transformers
+
+easyocr
+opencv-python
+pymupdf
 pillow
 numpy
 
@@ -25,3 +34,9 @@ openpyxl
 sqlalchemy
 
 python-dotenv
+
+httpx
+itsdangerous
+authlib
+google-auth
+google-auth-oauthlib

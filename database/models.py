@@ -12,11 +12,20 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String(200), nullable=False, default="System User")
+    google_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    role: Mapped[str] = mapped_column(String(50), nullable=False, default="reviewer")
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    full_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    profile_picture: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    last_login: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @property
+    def name(self) -> str:
+        return self.full_name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self.full_name = value
 
 
 class ProcessingSession(Base):
@@ -97,3 +106,19 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     document: Mapped["Document"] = relationship("Document", back_populates="audit_logs")
+
+
+class OAuthState(Base):
+    """Server-side OAuth state storage.
+
+    Stores the OAuth state token and associated data in the database
+    instead of relying on session cookies, which can be lost during
+    cross-origin redirects through Google's OAuth servers.
+    """
+    __tablename__ = "oauth_states"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    state: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    data: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+

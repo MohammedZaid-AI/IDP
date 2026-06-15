@@ -18,6 +18,7 @@ from database.crud import (
     get_document,
     search_documents,
     list_processing_sessions,
+    list_recent_sessions,
     get_processing_session,
 )
 from database.db import SessionLocal
@@ -30,36 +31,14 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 pages_router = APIRouter(tags=["pages"])
 
 
-@pages_router.get("/")
-def root(request: Request) -> RedirectResponse:
-    return RedirectResponse(url="/dashboard")
-
-
 @pages_router.get("/dashboard")
 def dashboard_page(request: Request):
     session_id_param = request.query_params.get("session_id")
     active_session_id = int(session_id_param) if session_id_param and session_id_param.isdigit() else None
     
     with SessionLocal() as session:
-        db_sessions = list_processing_sessions(session)
-        utc_today = datetime.utcnow().date()
-        utc_yesterday = utc_today - timedelta(days=1)
+        recent_sessions = list_recent_sessions(session)
         
-        grouped_sessions = {
-            "today": [],
-            "yesterday": [],
-            "older": []
-        }
-        
-        for s in db_sessions:
-            s_date = s.created_at.date()
-            if s_date == utc_today:
-                grouped_sessions["today"].append(s)
-            elif s_date == utc_yesterday:
-                grouped_sessions["yesterday"].append(s)
-            else:
-                grouped_sessions["older"].append(s)
-                
         active_session = None
         documents = []
         if active_session_id:
@@ -81,7 +60,7 @@ def dashboard_page(request: Request):
             {
                 "page_title": active_session.name if active_session else "IDP Platform",
                 "user_name": _resolve_user_name(request, session),
-                "grouped_sessions": grouped_sessions,
+                "recent_sessions": recent_sessions,
                 "active_session": active_session,
                 "documents": documents,
                 "excel_url": excel_url,
@@ -92,39 +71,21 @@ def dashboard_page(request: Request):
 def _resolve_user_name(request: Request, session) -> str:
     current_user = getattr(request.state, "user", None)
     if isinstance(current_user, dict):
-        return str(current_user.get("name") or current_user.get("username") or "User")
-    if current_user is not None:
-        return str(getattr(current_user, "name", None) or getattr(current_user, "username", None) or "User")
-
-    cookie_user = request.cookies.get("user_name")
-    if cookie_user:
-        return cookie_user
-
-    user = session.execute(select(User).where(User.is_active.is_(True)).order_by(User.id)).scalars().first()
-    return user.name if user else "User"
+        return str(current_user.get("name") or "User")
+        
+    user_id = request.session.get("user_id")
+    if user_id:
+        user = session.get(User, user_id)
+        if user:
+            return user.full_name
+            
+    return "User"
 
 
 @pages_router.get("/settings")
 def settings_page(request: Request):
     with SessionLocal() as session:
-        db_sessions = list_processing_sessions(session)
-        utc_today = datetime.utcnow().date()
-        utc_yesterday = utc_today - timedelta(days=1)
-        
-        grouped_sessions = {
-            "today": [],
-            "yesterday": [],
-            "older": []
-        }
-        
-        for s in db_sessions:
-            s_date = s.created_at.date()
-            if s_date == utc_today:
-                grouped_sessions["today"].append(s)
-            elif s_date == utc_yesterday:
-                grouped_sessions["yesterday"].append(s)
-            else:
-                grouped_sessions["older"].append(s)
+        recent_sessions = list_recent_sessions(session)
                 
         return templates.TemplateResponse(
             request,
@@ -132,7 +93,7 @@ def settings_page(request: Request):
             {
                 "page_title": "Settings",
                 "user_name": _resolve_user_name(request, session),
-                "grouped_sessions": grouped_sessions,
+                "recent_sessions": recent_sessions,
                 "active_session": None,
             },
         )

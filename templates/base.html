@@ -23,65 +23,80 @@
           <div class="brand-subtitle">FastAPI + LangGraph</div>
         </div>
       </div>
-      <div class="new-session-btn-container mt-4">
-        <a href="/dashboard" class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2 py-2 mb-3">
-          <i class="bi bi-plus-lg"></i>
-          <span>New Session</span>
-        </a>
+      
+      <!-- User Profile Card -->
+      <div class="sidebar-user mt-4 mb-3 p-3 rounded border border-secondary text-start" style="background: rgba(255,255,255,0.03);">
+        <div class="d-flex align-items-center gap-3">
+          {% if request.session.get('picture') %}
+            <img src="{{ request.session.get('picture') }}" class="rounded-circle border border-primary" style="width: 44px; height: 44px; object-fit: cover;" alt="Avatar">
+          {% else %}
+            <div class="rounded-circle bg-primary text-white d-grid place-items-center" style="width: 44px; height: 44px; font-weight: 700; font-size: 1.1rem; min-width: 44px;">
+              {{ request.session.get('name', 'U')[0] | upper }}
+            </div>
+          {% endif %}
+          <div class="text-truncate">
+            <div class="fw-bold small text-text">{{ request.session.get('name', 'User') }}</div>
+            <div class="text-secondary text-truncate" style="font-size: 0.75rem;">{{ request.session.get('email', '') }}</div>
+          </div>
+        </div>
       </div>
-      <div class="small text-uppercase text-secondary fw-semibold mb-2">Sessions</div>
-      <nav class="session-history flex-grow-1 overflow-y-auto mt-2">
-        {% if grouped_sessions.today %}
-          <div class="session-group-title text-uppercase text-secondary small fw-bold mt-2 mb-2" style="font-size: 0.75rem;">Today</div>
-          <div class="d-flex flex-column gap-1">
-            {% for s in grouped_sessions.today %}
-              <div class="session-item-row d-flex align-items-center justify-content-between rounded px-2 py-1 {% if active_session and active_session.id == s.id %}active-session-item{% endif %}">
-                <a href="/dashboard?session_id={{ s.id }}" class="session-link text-truncate flex-grow-1 text-decoration-none">
-                  <i class="bi bi-chat-left-text me-2"></i>
-                  <span>{{ s.name }}</span>
-                </a>
-                <button class="btn btn-link btn-sm p-0 text-danger delete-session-btn" data-session-id="{{ s.id }}" title="Del.te session">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-        {% if grouped_sessions.yesterday %}
-          <div class="session-group-title text-uppercase text-secondary small fw-bold mt-3 mb-2" style="font-size: 0.75rem;">Yesterday</div>
-          <div class="d-flex flex-column gap-1">
-            {% for s in grouped_sessions.yesterday %}
-              <div class="session-item-row d-flex align-items-center justify-content-between rounded px-2 py-1 {% if active_session and active_session.id == s.id %}active-session-item{% endif %}">
-                <a href="/dashboard?session_id={{ s.id }}" class="session-link text-truncate flex-grow-1 text-decoration-none">
-                  <i class="bi bi-chat-left-text me-2"></i>
-                  <span>{{ s.name }}</span>
-                </a>
-                <button class="btn btn-link btn-sm p-0 text-danger delete-session-btn" data-session-id="{{ s.id }}" title="Delete session">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-        {% if grouped_sessions.older %}
-          <div class="session-group-title text-uppercase text-secondary small fw-bold mt-3 mb-2" style="font-size: 0.75rem;">Older</div>
-          <div class="d-flex flex-column gap-1">
-            {% for s in grouped_sessions.older %}
-              <div class="session-item-row d-flex align-items-center justify-content-between rounded px-2 py-1 {% if active_session and active_session.id == s.id %}active-session-item{% endif %}">
-                <a href="/dashboard?session_id={{ s.id }}" class="session-link text-truncate flex-grow-1 text-decoration-none">
-                  <i class="bi bi-chat-left-text me-2"></i>
-                  <span>{{ s.name }}</span>
-                </a>
-                <button class="btn btn-link btn-sm p-0 text-danger delete-session-btn" data-session-id="{{ s.id }}" title="Delete session">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
+
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav d-flex flex-column gap-1">
+        <a href="/dashboard" class="nav-link d-flex align-items-center gap-2 py-2 px-3 rounded-3 {% if not active_session %}active{% endif %}" id="nav-dashboard">
+          <i class="bi bi-speedometer2"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="/dashboard" class="nav-link d-flex align-items-center gap-2 py-2 px-3 rounded-3" id="nav-upload">
+          <i class="bi bi-cloud-arrow-up"></i>
+          <span>Upload Documents</span>
+        </a>
       </nav>
-      <div class="sidebar-footer mt-auto">
-        <a href="/settings" class="nav-link p-0 text-secondary text-decoration-none"><i class="bi bi-gear me-2"></i> Settings</a>
+
+      <!-- Recent Sessions -->
+      <div class="sidebar-sessions-section mt-3 flex-grow-1 d-flex flex-column" style="min-height: 0;">
+        <div class="sidebar-sessions-label">
+          <i class="bi bi-clock-history me-1"></i>Recent Sessions
+        </div>
+        <div class="sidebar-sessions-list" id="sidebarSessionsList">
+          {% if recent_sessions is defined and recent_sessions %}
+            {% for s in recent_sessions %}
+              <a href="/dashboard?session_id={{ s.id }}"
+                 class="sidebar-session-card {% if active_session and active_session.id == s.id %}active{% endif %}"
+                 id="sidebar-session-{{ s.id }}">
+                <div class="sidebar-session-card-inner">
+                  <div class="sidebar-session-icon">
+                    <i class="bi bi-file-earmark-text"></i>
+                  </div>
+                  <div class="sidebar-session-info">
+                    <div class="sidebar-session-name">{{ s.name }}</div>
+                    <div class="sidebar-session-meta">
+                      {{ s.documents|length }} doc{{ 's' if s.documents|length != 1 else '' }}
+                      <span class="sidebar-session-dot"></span>
+                      {{ s.created_at.strftime('%d %b %Y') }}
+                    </div>
+                  </div>
+                  <button class="delete-session-btn" data-session-id="{{ s.id }}" title="Delete session">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </div>
+              </a>
+            {% endfor %}
+          {% else %}
+            <div class="sidebar-sessions-empty">
+              <i class="bi bi-inbox"></i>
+              <span>No recent sessions</span>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Logout -->
+      <div class="sidebar-footer mt-auto pt-2">
+        <a href="/logout" class="nav-link text-danger d-flex align-items-center gap-2 py-2 px-3 rounded-3" id="nav-logout">
+          <i class="bi bi-box-arrow-right"></i>
+          <span>Logout</span>
+        </a>
       </div>
     </aside>
 
@@ -110,66 +125,79 @@
       <h5 class="offcanvas-title">IDP Platform</h5>
       <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
     </div>
-    <div class="offcanvas-body">
-      <div class="new-session-btn-container mb-3">
-        <a href="/dashboard" class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2 py-2">
-          <i class="bi bi-plus-lg"></i>
-          <span>New Session</span>
-        </a>
+    <div class="offcanvas-body d-flex flex-column">
+      <!-- User Profile Card -->
+      <div class="sidebar-user mb-4 p-3 rounded border border-secondary text-start" style="background: rgba(255,255,255,0.03);">
+        <div class="d-flex align-items-center gap-3">
+          {% if request.session.get('picture') %}
+            <img src="{{ request.session.get('picture') }}" class="rounded-circle border border-primary" style="width: 44px; height: 44px; object-fit: cover;" alt="Avatar">
+          {% else %}
+            <div class="rounded-circle bg-primary text-white d-grid place-items-center" style="width: 44px; height: 44px; font-weight: 700; font-size: 1.1rem; min-width: 44px;">
+              {{ request.session.get('name', 'U')[0] | upper }}
+            </div>
+          {% endif %}
+          <div class="text-truncate">
+            <div class="fw-bold small text-text">{{ request.session.get('name', 'User') }}</div>
+            <div class="text-secondary text-truncate" style="font-size: 0.75rem;">{{ request.session.get('email', '') }}</div>
+          </div>
+        </div>
       </div>
-      <div class="small text-uppercase text-secondary fw-semibold mb-2">Sessions</div>
-      <nav class="session-history flex-grow-1 overflow-y-auto mt-2">
-        {% if grouped_sessions.today %}
-          <div class="session-group-title text-uppercase text-secondary small fw-bold mt-2 mb-2" style="font-size: 0.75rem;">Today</div>
-          <div class="d-flex flex-column gap-1">
-            {% for s in grouped_sessions.today %}
-              <div class="session-item-row d-flex align-items-center justify-content-between rounded px-2 py-1 {% if active_session and active_session.id == s.id %}active-session-item{% endif %}">
-                <a href="/dashboard?session_id={{ s.id }}" class="session-link text-truncate flex-grow-1 text-decoration-none">
-                  <i class="bi bi-chat-left-text me-2"></i>
-                  <span>{{ s.name }}</span>
-                </a>
-                <button class="btn btn-link btn-sm p-0 text-danger delete-session-btn" data-session-id="{{ s.id }}" title="Delete session">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-        {% if grouped_sessions.yesterday %}
-          <div class="session-group-title text-uppercase text-secondary small fw-bold mt-3 mb-2" style="font-size: 0.75rem;">Yesterday</div>
-          <div class="d-flex flex-column gap-1">
-            {% for s in grouped_sessions.yesterday %}
-              <div class="session-item-row d-flex align-items-center justify-content-between rounded px-2 py-1 {% if active_session and active_session.id == s.id %}active-session-item{% endif %}">
-                <a href="/dashboard?session_id={{ s.id }}" class="session-link text-truncate flex-grow-1 text-decoration-none">
-                  <i class="bi bi-chat-left-text me-2"></i>
-                  <span>{{ s.name }}</span>
-                </a>
-                <button class="btn btn-link btn-sm p-0 text-danger delete-session-btn" data-session-id="{{ s.id }}" title="Delete session">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-        {% if grouped_sessions.older %}
-          <div class="session-group-title text-uppercase text-secondary small fw-bold mt-3 mb-2" style="font-size: 0.75rem;">Older</div>
-          <div class="d-flex flex-column gap-1">
-            {% for s in grouped_sessions.older %}
-              <div class="session-item-row d-flex align-items-center justify-content-between rounded px-2 py-1 {% if active_session and active_session.id == s.id %}active-session-item{% endif %}">
-                <a href="/dashboard?session_id={{ s.id }}" class="session-link text-truncate flex-grow-1 text-decoration-none">
-                  <i class="bi bi-chat-left-text me-2"></i>
-                  <span>{{ s.name }}</span>
-                </a>
-                <button class="btn btn-link btn-sm p-0 text-danger delete-session-btn" data-session-id="{{ s.id }}" title="Delete session">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
+
+      <!-- Navigation Links -->
+      <nav class="sidebar-nav d-flex flex-column gap-1">
+        <a href="/dashboard" class="nav-link d-flex align-items-center gap-2 py-2 px-3 rounded-3 {% if not active_session %}active{% endif %}">
+          <i class="bi bi-speedometer2"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="/dashboard" class="nav-link d-flex align-items-center gap-2 py-2 px-3 rounded-3">
+          <i class="bi bi-cloud-arrow-up"></i>
+          <span>Upload Documents</span>
+        </a>
       </nav>
-      <div class="mt-4 border-top pt-3">
-        <a href="/settings" class="nav-link p-0 text-secondary text-decoration-none"><i class="bi bi-gear me-2"></i> Settings</a>
+
+      <!-- Recent Sessions (mobile) -->
+      <div class="sidebar-sessions-section mt-3 flex-grow-1 d-flex flex-column" style="min-height: 0;">
+        <div class="sidebar-sessions-label">
+          <i class="bi bi-clock-history me-1"></i>Recent Sessions
+        </div>
+        <div class="sidebar-sessions-list">
+          {% if recent_sessions is defined and recent_sessions %}
+            {% for s in recent_sessions %}
+              <a href="/dashboard?session_id={{ s.id }}"
+                 class="sidebar-session-card {% if active_session and active_session.id == s.id %}active{% endif %}">
+                <div class="sidebar-session-card-inner">
+                  <div class="sidebar-session-icon">
+                    <i class="bi bi-file-earmark-text"></i>
+                  </div>
+                  <div class="sidebar-session-info">
+                    <div class="sidebar-session-name">{{ s.name }}</div>
+                    <div class="sidebar-session-meta">
+                      {{ s.documents|length }} doc{{ 's' if s.documents|length != 1 else '' }}
+                      <span class="sidebar-session-dot"></span>
+                      {{ s.created_at.strftime('%d %b %Y') }}
+                    </div>
+                  </div>
+                  <button class="delete-session-btn" data-session-id="{{ s.id }}" title="Delete session">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </div>
+              </a>
+            {% endfor %}
+          {% else %}
+            <div class="sidebar-sessions-empty">
+              <i class="bi bi-inbox"></i>
+              <span>No recent sessions</span>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Logout -->
+      <div class="sidebar-footer mt-auto pt-2">
+        <a href="/logout" class="nav-link text-danger d-flex align-items-center gap-2 py-2 px-3 rounded-3">
+          <i class="bi bi-box-arrow-right"></i>
+          <span>Logout</span>
+        </a>
       </div>
     </div>
   </div>

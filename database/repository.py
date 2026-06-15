@@ -81,13 +81,6 @@ def seed_demo_data() -> Session:
                     payload=_json_payload({"message": "Seed document created"}),
                 )
             )
-            session.add(
-                User(
-                    name="Admin",
-                    email="admin@idp.local",
-                    role="admin",
-                )
-            )
         return session
     except Exception:
         session.rollback()

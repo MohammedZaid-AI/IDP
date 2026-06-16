@@ -41,15 +41,15 @@
               <!-- Collapsible Panels for Document Details -->
               <div class="d-flex flex-column gap-2 mt-3">
                 
-                <!-- OCR Text collapsible -->
+                <!-- Raw Model Response collapsible -->
                 <div class="collapsible-card">
-                  <button class="collapsible-trigger d-flex justify-content-between align-items-center w-100 text-start py-2 px-3 border-0 bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOcr_{{ doc.id }}" aria-expanded="false" aria-controls="collapseOcr_{{ doc.id }}">
-                    <span class="fw-semibold text-secondary">OCR Text</span>
+                  <button class="collapsible-trigger d-flex justify-content-between align-items-center w-100 text-start py-2 px-3 border-0 bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRaw_{{ doc.id }}" aria-expanded="false" aria-controls="collapseRaw_{{ doc.id }}">
+                    <span class="fw-semibold text-secondary">Raw Model Response</span>
                     <i class="bi bi-chevron-down trigger-arrow"></i>
                   </button>
-                  <div id="collapseOcr_{{ doc.id }}" class="collapse">
+                  <div id="collapseRaw_{{ doc.id }}" class="collapse">
                     <div class="collapsible-content p-3 border-top">
-                      <pre class="json-block m-0" style="white-space: pre-wrap; word-break: break-all;">{{ doc.ocr_text or "No OCR text available." }}</pre>
+                      <pre class="json-block m-0" style="white-space: pre-wrap; word-break: break-all;">{{ doc.ocr_text or doc.raw_llm_response or "No raw response available." }}</pre>
                     </div>
                   </div>
                 </div>
@@ -99,7 +99,7 @@
         </div>
         
         <p class="text-secondary mb-5" style="font-size: 1.05rem; line-height: 1.6; max-width: 620px;">
-          Unlock deep insights and extract structured key-value data automatically from financial and administrative documents using advanced AI and OCR workflows.
+          Unlock deep insights and extract structured key-value data automatically from financial and administrative documents using Qwen2.5-VL AI vision extraction.
         </p>
 
         <div class="row g-4 w-100 mb-5 text-start">
@@ -119,9 +119,9 @@
             <div class="panel h-100 p-4 border border-secondary" style="background: rgba(255, 255, 255, 0.01); border-radius: 12px;">
               <h5 class="fw-bold text-primary mb-3"><i class="bi bi-cpu me-2"></i>Platform Features</h5>
               <ul class="list-unstyled d-flex flex-column gap-2 text-secondary mb-0">
-                <li><i class="bi bi-check2-circle text-success me-2"></i><strong>OCR Processing</strong>: Extract plain text from scanned PDFs & images.</li>
-                <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Document Classification</strong>: Auto-categorize document types.</li>
-                <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Data Extraction</strong>: Extract clean JSON structure via LLM.</li>
+                <li><i class="bi bi-check2-circle text-success me-2"></i><strong>AI Vision Extraction</strong>: Extract structured data directly from document images.</li>
+                <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Document Classification</strong>: Auto-categorize document types via AI.</li>
+                <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Data Extraction</strong>: Extract clean JSON structure via Qwen2.5-VL.</li>
                 <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Excel Export</strong>: Download unified reports and spreadsheets.</li>
                 <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Multi-file Processing</strong>: Upload and process batches simultaneously.</li>
               </ul>

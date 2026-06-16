@@ -60,6 +60,7 @@ def _ensure_document_columns() -> None:
         "extracted_json": "TEXT NOT NULL DEFAULT '{}'",
         "validation_result": "TEXT NOT NULL DEFAULT '{}'",
         "excel_file_path": "VARCHAR(500) NOT NULL DEFAULT ''",
+        "extraction_engine": "VARCHAR(100) NOT NULL DEFAULT 'qwen2.5-vl'",
     }
     with engine.begin() as connection:
         existing_columns = {

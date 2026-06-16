@@ -4,18 +4,16 @@ from typing import Any
 
 
 __all__ = [
-    "DocumentClassifier",
     "DocumentValidator",
     "ExportService",
-    "HybridExtractionEngine",
+    "QwenLocalExtractor",
     "DocumentWorkflow",
 ]
 
 _EXPORTS = {
-    "DocumentClassifier": ("services.classifier", "DocumentClassifier"),
     "DocumentValidator": ("services.validation", "DocumentValidator"),
     "ExportService": ("services.export_service", "ExportService"),
-    "HybridExtractionEngine": ("services.qwen_extractor", "HybridExtractionEngine"),
+    "QwenLocalExtractor": ("services.qwen_local", "QwenLocalExtractor"),
     "DocumentWorkflow": ("services.workflow", "DocumentWorkflow"),
 }
 

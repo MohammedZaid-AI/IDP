@@ -58,6 +58,7 @@ class Document(Base):
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending_review")
     processing_time: Mapped[float] = mapped_column(Float, default=0.0)
     page_count: Mapped[int] = mapped_column(Integer, default=1)
+    extraction_engine: Mapped[str] = mapped_column(String(100), nullable=False, default="qwen2.5-vl")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

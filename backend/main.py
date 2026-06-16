@@ -100,6 +100,11 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(pages_router)
     app.include_router(api_router)
+
+    # Startup verification
+    from services.qwen_local import QwenLocalExtractor
+    extractor = QwenLocalExtractor()
+    extractor.verify_model()
     
     return app
 

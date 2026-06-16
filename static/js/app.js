@@ -246,6 +246,7 @@
       const validation = result.validation || {};
       const extractedJson = JSON.stringify(result.json_output || {}, null, 2);
       const validationJson = JSON.stringify(validation, null, 2);
+      const timings = result.processing_timings || {};
       
       return `
         <div class="panel">
@@ -253,22 +254,28 @@
             <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
               <div>
                 <h5 class="fw-bold mb-1">${escapeHtml(result.filename || "")}</h5>
-                <div class="text-secondary small">Document Type: ${escapeHtml(result.document_type || "unknown")}</div>
+                <div class="text-secondary small">
+                  Document Type: <span class="badge text-bg-secondary">${escapeHtml(result.document_type || "unknown")}</span>
+                  <span class="ms-2">Engine: <span class="badge text-bg-info">${escapeHtml(result.extraction_engine || "qwen2.5-vl")}</span></span>
+                </div>
               </div>
               <div class="text-end">
                 <span class="status-pill status-${(result.status || "").toLowerCase().replace(' ', '_')}">${escapeHtml(result.status || "")}</span>
                 <div class="small text-secondary mt-1">Confidence: ${Math.round((result.confidence || 0) * 100)}%</div>
               </div>
             </div>
-            
-            <div class="mb-4">
-              <h6 class="fw-semibold text-secondary text-uppercase mb-2">OCR Text</h6>
-              <pre class="json-block mt-2" style="white-space: pre-wrap; word-break: break-all;">${escapeHtml(result.raw_text || "")}</pre>
+
+            ${timings.qwen_time != null ? `
+            <div class="mb-3 d-flex gap-3 flex-wrap">
+              <span class="badge text-bg-light border"><i class="bi bi-clock me-1"></i>Qwen: ${timings.qwen_time?.toFixed(2) || '—'}s</span>
+              <span class="badge text-bg-light border"><i class="bi bi-shield-check me-1"></i>Validation: ${timings.validation_time?.toFixed(3) || '—'}s</span>
+              <span class="badge text-bg-light border"><i class="bi bi-stopwatch me-1"></i>Total: ${timings.total_time?.toFixed(2) || '—'}s</span>
             </div>
+            ` : ''}
             
             <div class="mb-4">
-              <h6 class="fw-semibold text-secondary text-uppercase mb-2">Raw LLM Response</h6>
-              <pre class="json-block mt-2" style="white-space: pre-wrap; word-break: break-all;">${escapeHtml(result.raw_llm_response || "")}</pre>
+              <h6 class="fw-semibold text-secondary text-uppercase mb-2">Raw Model Response</h6>
+              <pre class="json-block mt-2" style="white-space: pre-wrap; word-break: break-all;">${escapeHtml(result.raw_text || result.raw_llm_response || "")}</pre>
             </div>
             
             <div class="mb-4">

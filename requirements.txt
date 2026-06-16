@@ -1,18 +1,14 @@
 # Web framework
 starlette
+fastapi
 uvicorn[standard]
 jinja2
 python-multipart
 pydantic
 
 # LLM & AI
-langchain
-langchain-groq
-langgraph
 
-# OCR & Document Processing
-easyocr
-opencv-python-headless
+# Document Processing
 pymupdf
 pillow
 numpy

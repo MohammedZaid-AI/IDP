@@ -9,13 +9,15 @@ from schemas.documents import ValidationIssue, ValidationResult
 
 
 REQUIRED_FIELDS = {
-    "invoice": ["invoice_number", "invoice_date", "vendor_name", "total_amount"],
-    "receipt": ["receipt_number", "merchant_name", "amount"],
-    "bank_statement": ["account_number", "bank_name"],
-    "financial_report": ["reporting_period", "currency"],
-    "purchase_order": ["po_number", "vendor_name", "order_date"],
-    "credit_note": ["credit_note_number", "vendor_name", "amount"],
-    "debit_note": ["debit_note_number", "vendor_name", "amount"],
+    "invoice": ["document_number", "document_date", "vendor_name", "total_amount"],
+    "receipt": ["document_number", "document_date", "total_amount"],
+    "bank_statement": ["document_number", "document_date"],
+    "financial_report": ["document_date"],
+    "purchase_order": ["document_number", "vendor_name", "document_date"],
+    "credit_note": ["document_number", "vendor_name", "total_amount"],
+    "debit_note": ["document_number", "vendor_name", "total_amount"],
+    "tax_document": ["document_number", "document_date", "total_amount"],
+    "other_financial_document": [],
 }
 
 
@@ -25,24 +27,20 @@ class DocumentValidator:
         issues: list[ValidationIssue] = []
         missing_fields: list[str] = []
 
-        print("VALIDATION INCOMING JSON")
-        print(payload)
-
         for field_name in required_fields:
             value = payload.get(field_name)
             if value in (None, "", []):
                 missing_fields.append(field_name)
                 issues.append(ValidationIssue(field=field_name, message="Missing required field"))
 
-        print("MISSING FIELDS")
-        print(missing_fields)
-
-        amount_fields = [key for key in payload if "amount" in key.lower()]
+        # Validate amount fields
+        amount_fields = [key for key in payload if "amount" in key.lower() or key in ("subtotal",)]
         for field_name in amount_fields:
             if payload.get(field_name) not in (None, ""):
                 if not self._looks_like_amount(payload.get(field_name)):
                     issues.append(ValidationIssue(field=field_name, message="Invalid amount format"))
 
+        # Validate date fields
         date_fields = [key for key in payload if "date" in key.lower() or "period" in key.lower()]
         for field_name in date_fields:
             if payload.get(field_name) not in (None, ""):

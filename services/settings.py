@@ -12,10 +12,8 @@ class AppSettings:
     uploads_dir: Path = Path(os.getenv("UPLOADS_DIR", "uploads"))
     exports_dir: Path = Path(os.getenv("EXPORTS_DIR", "exports"))
     secret_key: str = os.getenv("SECRET_KEY", "idp-secret-key")
-    groq_api_key: str | None = os.getenv("GROQ_API_KEY")
-    qwen_api_url: str | None = os.getenv("QWEN_API_URL")
-    qwen_api_key: str | None = os.getenv("QWEN_API_KEY")
-    qwen_model: str = os.getenv("QWEN_MODEL", "qwen2.5-vl")
+    ollama_url: str = os.getenv("OLLAMA_URL", "http://localhost:11434")
+    qwen_model: str = os.getenv("QWEN_MODEL", "qwen2.5vl:3b")
 
 
 @lru_cache(maxsize=1)

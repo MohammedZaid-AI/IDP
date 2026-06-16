@@ -163,9 +163,16 @@ async def google_callback(request: Request):
     # Now let Authlib validate the state and exchange the code for tokens
     try:
         token = await oauth.google.authorize_access_token(request)
+        print("[TRACE 1] Raw Google OAuth response token:", token)
+        LOGGER.info(f"[TRACE 1] Raw Google OAuth response token: {token}")
+        
         userinfo = token.get("userinfo")
         if not userinfo:
             userinfo = await oauth.google.parse_id_token(request, token)
+        print("[TRACE 2] Raw userinfo response:", userinfo)
+        LOGGER.info(f"[TRACE 2] Raw userinfo response: {userinfo}")
+        print("[TRACE 3] Value of user_info['picture']:", userinfo.get("picture") if userinfo else None)
+        LOGGER.info(f"[TRACE 3] Value of userinfo['picture']: {userinfo.get('picture') if userinfo else None}")
     except Exception as e:
         LOGGER.error(f"Google OAuth authorization callback failed: {e}")
         print(f"[OAuth Callback] Token exchange failed: {e}")
@@ -193,18 +200,24 @@ async def google_callback(request: Request):
             db_session.add(user)
             db_session.commit()
             db_session.refresh(user)
+            print("[TRACE 4] Value stored in database (New User):", user.profile_picture)
+            LOGGER.info(f"[TRACE 4] Value stored in database (New User): {user.profile_picture}")
         else:
             # Update user profile values
             user.full_name = full_name
             user.profile_picture = profile_picture
             user.last_login = datetime.utcnow()
             db_session.commit()
+            print("[TRACE 4] Value stored in database (Existing User):", user.profile_picture)
+            LOGGER.info(f"[TRACE 4] Value stored in database (Existing User): {user.profile_picture}")
 
         # Populate session parameters
         request.session["user_id"] = user.id
         request.session["email"] = user.email
         request.session["name"] = user.full_name
         request.session["picture"] = user.profile_picture or ""
+        print("[TRACE 5] Value stored in session:", request.session["picture"])
+        LOGGER.info(f"[TRACE 5] Value stored in session: {request.session['picture']}")
 
         response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
         response.set_cookie("user_name", user.full_name)
@@ -219,6 +232,12 @@ def logout_action(request: Request):
     response = RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
     response.delete_cookie("user_name")
     return response
+
+
+
+
+
+
 
 
 

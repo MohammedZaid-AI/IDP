@@ -45,8 +45,7 @@ def get_db() -> Generator[Session, None, None]:
 def init_db() -> None:
     from database import models  # noqa: F401
 
-    # Drop and recreate to ensure schema matches models (removes legacy columns like 'language')
-    Base.metadata.drop_all(bind=engine)
+    # Recreate missing tables to ensure schema matches models
     Base.metadata.create_all(bind=engine)
     _ensure_document_columns()
 

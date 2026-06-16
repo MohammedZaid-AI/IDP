@@ -6,6 +6,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import json
+import logging
 from datetime import datetime, date, timedelta
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, PlainTextResponse
@@ -29,6 +30,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 pages_router = APIRouter(tags=["pages"])
+LOGGER = logging.getLogger(__name__)
 
 
 @pages_router.get("/dashboard")
@@ -38,6 +40,7 @@ def dashboard_page(request: Request):
     
     with SessionLocal() as session:
         recent_sessions = list_recent_sessions(session)
+        user = _resolve_user(request, session)
         
         active_session = None
         documents = []
@@ -54,31 +57,56 @@ def dashboard_page(request: Request):
             if excel_path.exists() and excel_path.is_file():
                 excel_url = f"/api/download-temp?file={excel_path.name}"
                 
+        print("[TRACE 6] Value passed to template context (Dashboard). request.session['picture']:", request.session.get("picture"))
+        LOGGER.info(f"[TRACE 6] Value passed to template context (Dashboard). request.session['picture']: {request.session.get('picture')}")
         return templates.TemplateResponse(
             request,
             "dashboard.html",
             {
                 "page_title": active_session.name if active_session else "IDP Platform",
-                "user_name": _resolve_user_name(request, session),
+                "user": user,
+                "user_name": user.full_name if user else "User",
                 "recent_sessions": recent_sessions,
                 "active_session": active_session,
                 "documents": documents,
                 "excel_url": excel_url,
+                "active_page": "dashboard",
             },
         )
 
 
-def _resolve_user_name(request: Request, session) -> str:
-    current_user = getattr(request.state, "user", None)
-    if isinstance(current_user, dict):
-        return str(current_user.get("name") or "User")
-        
+@pages_router.get("/upload")
+def upload_page(request: Request):
+    with SessionLocal() as session:
+        recent_sessions = list_recent_sessions(session)
+        user = _resolve_user(request, session)
+        print("[TRACE 6] Value passed to template context (Upload). request.session['picture']:", request.session.get("picture"))
+        LOGGER.info(f"[TRACE 6] Value passed to template context (Upload). request.session['picture']: {request.session.get('picture')}")
+        return templates.TemplateResponse(
+            request,
+            "upload.html",
+            {
+                "page_title": "Upload Documents",
+                "user": user,
+                "user_name": user.full_name if user else "User",
+                "recent_sessions": recent_sessions,
+                "active_session": None,
+                "active_page": "upload",
+            },
+        )
+
+
+def _resolve_user(request: Request, session) -> User | None:
     user_id = request.session.get("user_id")
     if user_id:
-        user = session.get(User, user_id)
-        if user:
-            return user.full_name
-            
+        return session.get(User, user_id)
+    return None
+
+
+def _resolve_user_name(request: Request, session) -> str:
+    user = _resolve_user(request, session)
+    if user:
+        return user.full_name
     return "User"
 
 
@@ -86,14 +114,18 @@ def _resolve_user_name(request: Request, session) -> str:
 def settings_page(request: Request):
     with SessionLocal() as session:
         recent_sessions = list_recent_sessions(session)
+        user = _resolve_user(request, session)
                 
         return templates.TemplateResponse(
             request,
             "settings.html",
             {
                 "page_title": "Settings",
-                "user_name": _resolve_user_name(request, session),
+                "user": user,
+                "user_name": user.full_name if user else "User",
                 "recent_sessions": recent_sessions,
                 "active_session": None,
+                "active_page": "settings",
             },
         )
+

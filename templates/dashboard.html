@@ -91,81 +91,47 @@
       </div>
 
     {% else %}
-      <!-- Welcome Mode (ChatGPT-style empty state) -->
-      <div class="d-flex flex-column align-items-center text-center py-5 mx-auto" style="max-width: 680px;">
+      <!-- Welcome Mode (Dashboard Information Only) -->
+      <div class="d-flex flex-column align-items-center text-center py-5 mx-auto" style="max-width: 720px;">
         <h2 class="fw-bold mb-2 text-text" style="font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em;">Welcome back, {{ user_name }}</h2>
         <div class="text-primary fw-bold text-uppercase mb-4" style="font-size: 0.85rem; letter-spacing: 0.12em;">
           Intelligent Document Processing Platform
         </div>
         
-        <p class="text-secondary mb-4" style="font-size: 1.05rem; line-height: 1.6; max-width: 620px;">
-          Upload invoices, receipts, bank statements, credit notes, and financial documents. 
-          Extract structured data automatically using AI.
+        <p class="text-secondary mb-5" style="font-size: 1.05rem; line-height: 1.6; max-width: 620px;">
+          Unlock deep insights and extract structured key-value data automatically from financial and administrative documents using advanced AI and OCR workflows.
         </p>
 
-        <!-- Features list -->
-        <div class="d-flex justify-content-center flex-wrap gap-2 mb-5" style="max-width: 650px;">
-          <div class="px-3 py-1.5 rounded-pill border d-flex align-items-center gap-2" style="font-size: 0.82rem; font-weight: 500; color: var(--text); background: rgba(255, 255, 255, 0.03);">
-            <i class="bi bi-check2 text-success"></i> OCR Processing
+        <div class="row g-4 w-100 mb-5 text-start">
+          <div class="col-md-6">
+            <div class="panel h-100 p-4 border border-secondary" style="background: rgba(255, 255, 255, 0.01); border-radius: 12px;">
+              <h5 class="fw-bold text-primary mb-3"><i class="bi bi-file-earmark-text me-2"></i>Supported Documents</h5>
+              <ul class="list-unstyled d-flex flex-column gap-2 text-secondary mb-0">
+                <li><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Invoices (Vendor & Customer)</li>
+                <li><i class="bi bi-receipt text-success me-2"></i>Receipts & Bills</li>
+                <li><i class="bi bi-file-earmark-spreadsheet text-info me-2"></i>Bank Statements</li>
+                <li><i class="bi bi-card-list text-warning me-2"></i>Credit Notes & Purchase Orders</li>
+                <li><i class="bi bi-file-earmark-richtext text-primary me-2"></i>Financial & Administrative Reports</li>
+              </ul>
+            </div>
           </div>
-          <div class="px-3 py-1.5 rounded-pill border d-flex align-items-center gap-2" style="font-size: 0.82rem; font-weight: 500; color: var(--text); background: rgba(255, 255, 255, 0.03);">
-            <i class="bi bi-check2 text-success"></i> Document Classification
-          </div>
-          <div class="px-3 py-1.5 rounded-pill border d-flex align-items-center gap-2" style="font-size: 0.82rem; font-weight: 500; color: var(--text); background: rgba(255, 255, 255, 0.03);">
-            <i class="bi bi-check2 text-success"></i> Data Extraction
-          </div>
-          <div class="px-3 py-1.5 rounded-pill border d-flex align-items-center gap-2" style="font-size: 0.82rem; font-weight: 500; color: var(--text); background: rgba(255, 255, 255, 0.03);">
-            <i class="bi bi-check2 text-success"></i> Excel Export
-          </div>
-          <div class="px-3 py-1.5 rounded-pill border d-flex align-items-center gap-2" style="font-size: 0.82rem; font-weight: 500; color: var(--text); background: rgba(255, 255, 255, 0.03);">
-            <i class="bi bi-check2 text-success"></i> Multi-file Processing
+          <div class="col-md-6">
+            <div class="panel h-100 p-4 border border-secondary" style="background: rgba(255, 255, 255, 0.01); border-radius: 12px;">
+              <h5 class="fw-bold text-primary mb-3"><i class="bi bi-cpu me-2"></i>Platform Features</h5>
+              <ul class="list-unstyled d-flex flex-column gap-2 text-secondary mb-0">
+                <li><i class="bi bi-check2-circle text-success me-2"></i><strong>OCR Processing</strong>: Extract plain text from scanned PDFs & images.</li>
+                <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Document Classification</strong>: Auto-categorize document types.</li>
+                <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Data Extraction</strong>: Extract clean JSON structure via LLM.</li>
+                <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Excel Export</strong>: Download unified reports and spreadsheets.</li>
+                <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Multi-file Processing</strong>: Upload and process batches simultaneously.</li>
+              </ul>
+            </div>
           </div>
         </div>
 
-        <!-- Central Upload Card -->
-        <div class="panel w-100 p-4 border border-secondary shadow-sm text-start" style="background: rgba(255, 255, 255, 0.02); border-radius: 16px;">
-          <form id="uploadForm" enctype="multipart/form-data">
-            <div id="dropZone" class="drop-zone border-dashed rounded-3 p-5 d-flex flex-column align-items-center justify-content-center cursor-pointer" style="border: 2px dashed var(--border); transition: all 0.2s ease; background: rgba(255, 255, 255, 0.01);">
-              <input type="file" class="form-control d-none" id="fileInput" name="files" multiple accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp,.webp">
-              <div class="text-center">
-                <i class="bi bi-cloud-arrow-up display-5 text-primary mb-3 d-block"></i>
-                <h5 class="fw-bold mb-1 text-text">Drag & drop files here</h5>
-                <p class="text-secondary small mb-3">Supports PDF, PNG, JPG, JPEG, TIFF, BMP, and WEBP</p>
-                <button type="button" class="btn btn-outline-primary px-4 py-2" id="browseButton">
-                  <i class="bi bi-file-earmark-arrow-up me-2"></i>Upload Documents
-                </button>
-              </div>
-            </div>
-
-            <!-- Selected Files List -->
-            <div class="mt-4">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <div class="fw-bold small text-text">Selected Files</div>
-                <div class="d-flex gap-2">
-                  <button type="button" class="btn btn-outline-primary btn-sm" id="addMoreFilesButton">
-                    <i class="bi bi-plus-lg me-1"></i>Add
-                  </button>
-                  <button type="button" class="btn btn-outline-danger btn-sm" id="clearFilesButton">
-                    <i class="bi bi-x-circle me-1"></i>Clear
-                  </button>
-                </div>
-              </div>
-              <div class="small text-secondary mb-2" id="selectedFilesText">No files selected yet.</div>
-              <div id="selectedFilesList" class="list-group mt-2" style="max-height: 180px; overflow-y: auto;"></div>
-            </div>
-
-            <div class="mt-4 d-flex justify-content-end align-items-center gap-3">
-              <div class="spinner-border spinner-border-sm text-primary d-none" id="uploadSpinner" role="status"></div>
-              <button type="submit" class="btn btn-primary px-4 py-2" id="processButton">
-                Start Processing
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <div id="uploadStatus" class="alert alert-info d-none mt-4 text-start w-100"></div>
-        <div id="resultsSummaryContainer" class="d-none mt-4 text-start w-100"></div>
-        <div id="uploadResults" class="stack gap-4 mt-4 text-start w-100"></div>
+        <a href="/upload" class="btn btn-primary px-5 py-3 fs-5 fw-semibold shadow-sm" style="border-radius: 10px;">
+          <i class="bi bi-cloud-arrow-up me-2"></i>Go to Upload Documents
+        </a>
       </div>
     {% endif %}
   </div>

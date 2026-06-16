@@ -16,38 +16,37 @@
   <div class="app-background"></div>
   <div class="app-layout">
     <aside class="sidebar d-none d-lg-flex flex-column">
-      <div class="brand">
-        <div class="brand-mark">IDP</div>
-        <div>
-          <div class="brand-title">Intelligence Platform</div>
-          <div class="brand-subtitle">FastAPI + LangGraph</div>
-        </div>
-      </div>
-      
       <!-- User Profile Card -->
-      <div class="sidebar-user mt-4 mb-3 p-3 rounded border border-secondary text-start" style="background: rgba(255,255,255,0.03);">
+      <div class="sidebar-user mb-3 p-3 rounded border border-secondary text-start" style="background: rgba(255,255,255,0.03);">
         <div class="d-flex align-items-center gap-3">
-          {% if request.session.get('picture') %}
-            <img src="{{ request.session.get('picture') }}" class="rounded-circle border border-primary" style="width: 44px; height: 44px; object-fit: cover;" alt="Avatar">
+          {% set picture_url = (user.profile_picture if user else None) or request.session.get('picture') %}
+          {% if picture_url %}
+            <img src="{{ picture_url }}" class="rounded-circle border border-primary" style="width: 48px; height: 48px; object-fit: cover; min-width: 48px; min-height: 48px;" alt="Avatar">
           {% else %}
-            <div class="rounded-circle bg-primary text-white d-grid place-items-center" style="width: 44px; height: 44px; font-weight: 700; font-size: 1.1rem; min-width: 44px;">
-              {{ request.session.get('name', 'U')[0] | upper }}
+            <div class="rounded-circle bg-primary text-white d-grid place-items-center" style="width: 48px; height: 48px; font-weight: 700; font-size: 1.1rem; min-width: 48px; min-height: 48px;">
+              {% set name = (user.full_name if user else None) or request.session.get('name', 'User') %}
+              {% set parts = name.split() %}
+              {% if parts|length > 1 %}
+                {{ parts[0][0]|upper }}{{ parts[1][0]|upper }}
+              {% else %}
+                {{ parts[0][0]|upper if parts else 'U' }}
+              {% endif %}
             </div>
           {% endif %}
           <div class="text-truncate">
-            <div class="fw-bold small text-text">{{ request.session.get('name', 'User') }}</div>
-            <div class="text-secondary text-truncate" style="font-size: 0.75rem;">{{ request.session.get('email', '') }}</div>
+            <div class="fw-bold small text-text">{{ (user.full_name if user else None) or request.session.get('name', 'User') }}</div>
+            <div class="text-secondary text-truncate" style="font-size: 0.75rem;">{{ (user.email if user else None) or request.session.get('email', '') }}</div>
           </div>
         </div>
       </div>
 
       <!-- Navigation Links -->
       <nav class="sidebar-nav d-flex flex-column gap-1">
-        <a href="/dashboard" class="nav-link d-flex align-items-center gap-2 py-2 px-3 rounded-3 {% if not active_session %}active{% endif %}" id="nav-dashboard">
+        <a href="/dashboard" class="nav-link d-flex align-items-center gap-2 py-2 px-3 rounded-3 {% if active_page == 'dashboard' and not active_session %}active{% endif %}" id="nav-dashboard">
           <i class="bi bi-speedometer2"></i>
           <span>Dashboard</span>
         </a>
-        <a href="/dashboard" class="nav-link d-flex align-items-center gap-2 py-2 px-3 rounded-3" id="nav-upload">
+        <a href="/upload" class="nav-link d-flex align-items-center gap-2 py-2 px-3 rounded-3 {% if active_page == 'upload' %}active{% endif %}" id="nav-upload">
           <i class="bi bi-cloud-arrow-up"></i>
           <span>Upload Documents</span>
         </a>
@@ -129,27 +128,34 @@
       <!-- User Profile Card -->
       <div class="sidebar-user mb-4 p-3 rounded border border-secondary text-start" style="background: rgba(255,255,255,0.03);">
         <div class="d-flex align-items-center gap-3">
-          {% if request.session.get('picture') %}
-            <img src="{{ request.session.get('picture') }}" class="rounded-circle border border-primary" style="width: 44px; height: 44px; object-fit: cover;" alt="Avatar">
+          {% set picture_url = (user.profile_picture if user else None) or request.session.get('picture') %}
+          {% if picture_url %}
+            <img src="{{ picture_url }}" class="rounded-circle border border-primary" style="width: 48px; height: 48px; object-fit: cover; min-width: 48px; min-height: 48px;" alt="Avatar">
           {% else %}
-            <div class="rounded-circle bg-primary text-white d-grid place-items-center" style="width: 44px; height: 44px; font-weight: 700; font-size: 1.1rem; min-width: 44px;">
-              {{ request.session.get('name', 'U')[0] | upper }}
+            <div class="rounded-circle bg-primary text-white d-grid place-items-center" style="width: 48px; height: 48px; font-weight: 700; font-size: 1.1rem; min-width: 48px; min-height: 48px;">
+              {% set name = (user.full_name if user else None) or request.session.get('name', 'User') %}
+              {% set parts = name.split() %}
+              {% if parts|length > 1 %}
+                {{ parts[0][0]|upper }}{{ parts[1][0]|upper }}
+              {% else %}
+                {{ parts[0][0]|upper if parts else 'U' }}
+              {% endif %}
             </div>
           {% endif %}
           <div class="text-truncate">
-            <div class="fw-bold small text-text">{{ request.session.get('name', 'User') }}</div>
-            <div class="text-secondary text-truncate" style="font-size: 0.75rem;">{{ request.session.get('email', '') }}</div>
+            <div class="fw-bold small text-text">{{ (user.full_name if user else None) or request.session.get('name', 'User') }}</div>
+            <div class="text-secondary text-truncate" style="font-size: 0.75rem;">{{ (user.email if user else None) or request.session.get('email', '') }}</div>
           </div>
         </div>
       </div>
 
       <!-- Navigation Links -->
       <nav class="sidebar-nav d-flex flex-column gap-1">
-        <a href="/dashboard" class="nav-link d-flex align-items-center gap-2 py-2 px-3 rounded-3 {% if not active_session %}active{% endif %}">
+        <a href="/dashboard" class="nav-link d-flex align-items-center gap-2 py-2 px-3 rounded-3 {% if active_page == 'dashboard' and not active_session %}active{% endif %}">
           <i class="bi bi-speedometer2"></i>
           <span>Dashboard</span>
         </a>
-        <a href="/dashboard" class="nav-link d-flex align-items-center gap-2 py-2 px-3 rounded-3">
+        <a href="/upload" class="nav-link d-flex align-items-center gap-2 py-2 px-3 rounded-3 {% if active_page == 'upload' %}active{% endif %}">
           <i class="bi bi-cloud-arrow-up"></i>
           <span>Upload Documents</span>
         </a>

@@ -1,42 +1,36 @@
-fastapi
+# Web framework
 starlette
-uvicorn
+uvicorn[standard]
 jinja2
 python-multipart
 pydantic
+
+# LLM & AI
 langchain
-langchain-community
-langchain-huggingface
-langgraph
 langchain-groq
-
-chromadb
-sentence-transformers
-
-easyocr
-opencv-python
-pymupdf
 langgraph
-langchain-groq
 
-chromadb
-sentence-transformers
-
+# OCR & Document Processing
 easyocr
-opencv-python
+opencv-python-headless
 pymupdf
 pillow
 numpy
 
+# Data Export
 pandas
 openpyxl
 
+# Database
 sqlalchemy
 
+# Auth & Security
 python-dotenv
-
 httpx
 itsdangerous
 authlib
 google-auth
 google-auth-oauthlib
+
+# Server
+gunicorn

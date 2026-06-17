@@ -30,7 +30,28 @@
                   <h5 class="fw-bold mb-1">{{ doc.original_filename or doc.filename }}</h5>
                   <div class="text-secondary small">
                     Document Type: <span class="badge text-bg-secondary">{{ doc.document_type }}</span>
+                    <span class="ms-2">Engine: <span class="badge text-bg-info">{{ doc.extraction_engine or "paddleocr-deepseek" }}</span></span>
                   </div>
+                  {% set timings = doc.timings_dict %}
+                  {% if timings %}
+                    <div class="mt-2 d-flex gap-2 flex-wrap">
+                      {% if timings.get('ocr_time') is not none %}
+                        <span class="badge text-bg-light border" style="font-size: 0.75rem;"><i class="bi bi-cpu me-1"></i>OCR: {{ "%.2f"|format(timings.get('ocr_time')) }}s</span>
+                      {% endif %}
+                      {% if timings.get('llm_time') is not none %}
+                        <span class="badge text-bg-light border" style="font-size: 0.75rem;"><i class="bi bi-chat-left-dots me-1"></i>LLM (DeepSeek-R1): {{ "%.2f"|format(timings.get('llm_time')) }}s</span>
+                      {% endif %}
+                      {% if timings.get('qwen_time') is not none %}
+                        <span class="badge text-bg-light border" style="font-size: 0.75rem;"><i class="bi bi-clock me-1"></i>Qwen: {{ "%.2f"|format(timings.get('qwen_time')) }}s</span>
+                      {% endif %}
+                      {% if timings.get('validation_time') is not none %}
+                        <span class="badge text-bg-light border" style="font-size: 0.75rem;"><i class="bi bi-shield-check me-1"></i>Validation: {{ "%.3f"|format(timings.get('validation_time')) }}s</span>
+                      {% endif %}
+                      {% if timings.get('total_time') is not none %}
+                        <span class="badge text-bg-light border" style="font-size: 0.75rem;"><i class="bi bi-stopwatch me-1"></i>Total: {{ "%.2f"|format(timings.get('total_time')) }}s</span>
+                      {% endif %}
+                    </div>
+                  {% endif %}
                 </div>
                 <div class="text-end">
                   <span class="status-pill status-{{ doc.status.lower().replace(' ', '_') }}">{{ doc.status }}</span>
@@ -99,7 +120,7 @@
         </div>
         
         <p class="text-secondary mb-5" style="font-size: 1.05rem; line-height: 1.6; max-width: 620px;">
-          Unlock deep insights and extract structured key-value data automatically from financial and administrative documents using Qwen2.5-VL AI vision extraction.
+          Unlock deep insights and extract structured key-value data automatically from financial and administrative documents using PaddleOCR + DeepSeek-R1:8B models.
         </p>
 
         <div class="row g-4 w-100 mb-5 text-start">
@@ -121,7 +142,7 @@
               <ul class="list-unstyled d-flex flex-column gap-2 text-secondary mb-0">
                 <li><i class="bi bi-check2-circle text-success me-2"></i><strong>AI Vision Extraction</strong>: Extract structured data directly from document images.</li>
                 <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Document Classification</strong>: Auto-categorize document types via AI.</li>
-                <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Data Extraction</strong>: Extract clean JSON structure via Qwen2.5-VL.</li>
+                <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Data Extraction</strong>: Extract clean JSON structure via local DeepSeek-R1:8B.</li>
                 <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Excel Export</strong>: Download unified reports and spreadsheets.</li>
                 <li><i class="bi bi-check2-circle text-success me-2"></i><strong>Multi-file Processing</strong>: Upload and process batches simultaneously.</li>
               </ul>

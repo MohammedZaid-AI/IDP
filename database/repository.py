@@ -105,6 +105,7 @@ def save_processed_document(
     raw_llm_response: str = "",
     validation_result: dict[str, Any] | str | None = None,
     excel_file_path: str = "",
+    processing_timings: dict[str, float] | str = "{}",
     session_id: int | None = None,
 ) -> Document:
     return create_document(
@@ -123,6 +124,7 @@ def save_processed_document(
         validation_result=validation_result,
         excel_file_path=excel_file_path,
         extraction_engine=engine,
+        processing_timings=processing_timings,
         session_id=session_id,
     )
 

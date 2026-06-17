@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -24,6 +25,8 @@ TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+LOGGER = logging.getLogger(__name__)
 
 
 class AuthMiddleware:
@@ -101,10 +104,23 @@ def create_app() -> FastAPI:
     app.include_router(pages_router)
     app.include_router(api_router)
 
-    # Startup verification
-    from services.qwen_local import QwenLocalExtractor
-    extractor = QwenLocalExtractor()
-    extractor.verify_model()
+    # Initialize all models once at startup
+    from services.multi_model import orchestrator
+    from services.paddle_deepseek import PaddleDeepSeekExtractor
+    # Ensure all services are initialized once
+    orchestrator.ensure_initialized()
+    # Ensure DeepSeek-R1 model is initialized once
+    deepseek_extractor = PaddleDeepSeekExtractor()
+    deepseek_extractor.ensure_initialized()
+    # Verify Ollama models are available
+    classification_ok = orchestrator.classification_service.verify_model()
+    extraction_ok = orchestrator.extraction_service.verify_model()
+    validation_ok = orchestrator.validation_service.verify_model()
+    
+    if all([classification_ok, extraction_ok, validation_ok]):
+        LOGGER.info("✓ All Ollama models verified successfully")
+    else:
+        LOGGER.error("✗ Some Ollama models failed verification")
     
     return app
 

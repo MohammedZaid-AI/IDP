@@ -93,8 +93,9 @@ def document_detail_api(document_id: int) -> JSONResponse:
                 "extracted_json": json.loads(document.extracted_json or "{}"),
                 "validation_result": json.loads(document.validation_result or "{}"),
                 "excel_file_path": document.excel_file_path,
-                "extraction_engine": getattr(document, 'extraction_engine', 'qwen2.5-vl'),
+                "extraction_engine": getattr(document, 'extraction_engine', 'paddleocr-deepseek'),
                 "processing_time": document.processing_time,
+                "processing_timings": document.timings_dict,
                 "page_count": document.page_count,
                 "created_at": document.created_at.isoformat(),
                 "reviews": [

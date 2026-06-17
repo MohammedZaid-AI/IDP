@@ -59,7 +59,16 @@ class Document(Base):
     processing_time: Mapped[float] = mapped_column(Float, default=0.0)
     page_count: Mapped[int] = mapped_column(Integer, default=1)
     extraction_engine: Mapped[str] = mapped_column(String(100), nullable=False, default="qwen2.5-vl")
+    processing_timings: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    @property
+    def timings_dict(self) -> dict[str, float]:
+        import json
+        try:
+            return json.loads(self.processing_timings or "{}")
+        except Exception:
+            return {}
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     session: Mapped[ProcessingSession | None] = relationship("ProcessingSession", back_populates="documents")

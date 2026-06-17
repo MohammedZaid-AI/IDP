@@ -256,7 +256,7 @@
                 <h5 class="fw-bold mb-1">${escapeHtml(result.filename || "")}</h5>
                 <div class="text-secondary small">
                   Document Type: <span class="badge text-bg-secondary">${escapeHtml(result.document_type || "unknown")}</span>
-                  <span class="ms-2">Engine: <span class="badge text-bg-info">${escapeHtml(result.extraction_engine || "qwen2.5-vl")}</span></span>
+                  <span class="ms-2">Engine: <span class="badge text-bg-info">${escapeHtml(result.extraction_engine || "paddleocr-deepseek")}</span></span>
                 </div>
               </div>
               <div class="text-end">
@@ -265,9 +265,11 @@
               </div>
             </div>
 
-            ${timings.qwen_time != null ? `
+            ${(timings.ocr_time != null || timings.llm_time != null || timings.qwen_time != null) ? `
             <div class="mb-3 d-flex gap-3 flex-wrap">
-              <span class="badge text-bg-light border"><i class="bi bi-clock me-1"></i>Qwen: ${timings.qwen_time?.toFixed(2) || '—'}s</span>
+              ${timings.ocr_time != null ? `<span class="badge text-bg-light border"><i class="bi bi-cpu me-1"></i>OCR: ${timings.ocr_time?.toFixed(2)}s</span>` : ''}
+              ${timings.llm_time != null ? `<span class="badge text-bg-light border"><i class="bi bi-chat-left-dots me-1"></i>LLM (DeepSeek-R1): ${timings.llm_time?.toFixed(2)}s</span>` : ''}
+              ${timings.qwen_time != null ? `<span class="badge text-bg-light border"><i class="bi bi-clock me-1"></i>Qwen: ${timings.qwen_time?.toFixed(2)}s</span>` : ''}
               <span class="badge text-bg-light border"><i class="bi bi-shield-check me-1"></i>Validation: ${timings.validation_time?.toFixed(3) || '—'}s</span>
               <span class="badge text-bg-light border"><i class="bi bi-stopwatch me-1"></i>Total: ${timings.total_time?.toFixed(2) || '—'}s</span>
             </div>

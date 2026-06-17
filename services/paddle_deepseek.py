@@ -1,13 +1,11 @@
-"""Qwen2.5-VL-7B extraction service via local Ollama.
+"""PaddleOCR + DeepSeek-R1:8B extraction service via local Ollama.
 
-Sends document images directly to a locally-running Qwen vision-language model
-for simultaneous classification and structured data extraction. Zero outbound
-API calls — everything runs through Ollama at http://localhost:11434.
+Runs local OCR using PaddleOCR, then structures the extracted text into JSON
+using a local DeepSeek-R1:8B reasoning model via Ollama.
 """
 
 from __future__ import annotations
 
-import base64
 import json
 import logging
 import re
@@ -18,18 +16,22 @@ from pathlib import Path
 from typing import Any
 
 import fitz  # PyMuPDF
+import numpy as np
 from PIL import Image
 
 from services.settings import get_settings
 
 LOGGER = logging.getLogger(__name__)
 
-# Maximum number of pages to send in a single request
+# Maximum number of pages to process
 MAX_PAGES = 10
 
 EXTRACTION_PROMPT = (
     "You are an expert Intelligent Document Processing system.\n\n"
-    "Analyze the document directly from the image or PDF.\n\n"
+    "Analyze the following OCR-extracted text from a document:\n\n"
+    "--- START DOCUMENT TEXT ---\n"
+    "{document_text}\n"
+    "--- END DOCUMENT TEXT ---\n\n"
     "Identify the document type.\n\n"
     "Possible types:\n"
     "- Invoice\n"
@@ -42,7 +44,6 @@ EXTRACTION_PROMPT = (
     "- Other Financial Document\n\n"
     "Extract all available information.\n\n"
     "Return ONLY valid JSON.\n"
-    "Do not use markdown.\n"
     "Do not explain.\n"
     "Do not wrap with ```json.\n\n"
     "If a field is missing use null.\n\n"
@@ -62,32 +63,17 @@ EXTRACTION_PROMPT = (
 
 @dataclass
 class ExtractionResult:
-    """Result of a Qwen2.5-VL extraction call."""
+    """Result of a PaddleOCR + DeepSeek-R1 extraction call."""
 
     document_type: str
     extracted_json: dict[str, Any]
     raw_response: str
+    ocr_text: str
     confidence: float
     page_count: int
+    ocr_time: float = 0.0
+    llm_time: float = 0.0
     processing_time: float = 0.0
-
-
-@dataclass
-class ProcessingTimings:
-    """Tracks individual stage timings."""
-
-    upload_time: float = 0.0
-    qwen_time: float = 0.0
-    validation_time: float = 0.0
-    total_time: float = 0.0
-
-    def to_dict(self) -> dict[str, float]:
-        return {
-            "upload_time": round(self.upload_time, 3),
-            "qwen_time": round(self.qwen_time, 3),
-            "validation_time": round(self.validation_time, 3),
-            "total_time": round(self.total_time, 3),
-        }
 
 
 # ---------------------------------------------------------------------------
@@ -141,25 +127,21 @@ def _render_pages(file_path: Path) -> list[Image.Image]:
     return [Image.open(file_path).convert("RGB")]
 
 
-def _image_to_base64(image: Image.Image, max_size: int = 1568) -> str:
-    """Encode a PIL image to a base64 string, resizing if needed."""
-    width, height = image.size
-    if max(width, height) > max_size:
-        scale = max_size / max(width, height)
-        image = image.resize((int(width * scale), int(height * scale)), Image.LANCZOS)
-    buffer = BytesIO()
-    image.save(buffer, format="PNG")
-    return base64.b64encode(buffer.getvalue()).decode("ascii")
-
-
 # ---------------------------------------------------------------------------
 # JSON parsing
 # ---------------------------------------------------------------------------
 
 def _parse_json_response(text: str) -> dict[str, Any] | None:
-    """Best-effort extraction of a JSON dict from raw model output."""
+    """Best-effort extraction of a JSON dict from raw model output, handling thought tags."""
+    # Strip think tags first
+    cleaned = text
+    if "<think>" in cleaned:
+        parts = cleaned.split("</think>", 1)
+        if len(parts) > 1:
+            cleaned = parts[1].strip()
+
     # Strip markdown fences if the model ignored our instructions
-    cleaned = re.sub(r"```(?:json)?", "", text).replace("```", "").strip()
+    cleaned = re.sub(r"```(?:json)?", "", cleaned).replace("```", "").strip()
     try:
         parsed = json.loads(cleaned)
         if isinstance(parsed, dict):
@@ -184,11 +166,7 @@ def _parse_json_response(text: str) -> dict[str, Any] | None:
 # ---------------------------------------------------------------------------
 
 def verify_ollama_model(ollama_url: str, model_name: str) -> bool:
-    """Check that Ollama is running and the required model is available.
-
-    Returns True if the model is found, False otherwise.
-    Logs a clear error message when the model is unavailable.
-    """
+    """Check that Ollama is running and the required model is available."""
     from urllib import error, request as urllib_request
     import sys
 
@@ -198,126 +176,176 @@ def verify_ollama_model(ollama_url: str, model_name: str) -> bool:
         with urllib_request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode("utf-8"))
     except Exception as exc:
-        msg = "Qwen2.5-VL local model not running."
+        msg = f"Ollama model '{model_name}' not running."
         print(msg, file=sys.stderr)
-        LOGGER.error(
-            "Ollama is not reachable at %s — %s. %s",
-            tags_url, exc, msg,
-        )
+        LOGGER.error("Ollama is not reachable at %s — %s. %s", tags_url, exc, msg)
         return False
 
     models = data.get("models", [])
     available_names = [m.get("name", "") for m in models]
-    # Ollama model names can be "qwen2.5vl:3b" or "qwen2.5vl:3b-..." etc.
     for name in available_names:
         if model_name in name or name.startswith(model_name.split(":")[0]):
             LOGGER.info("✓ Ollama model '%s' verified (matched '%s')", model_name, name)
             return True
 
-    msg = "Qwen2.5-VL local model not running."
+    msg = f"Ollama model '{model_name}' not running."
     print(msg, file=sys.stderr)
-    LOGGER.error(
-        "%s Model '%s' not found in Ollama. Available models: %s",
-        msg, model_name, available_names,
-    )
+    LOGGER.error("%s Model '%s' not found in Ollama. Available models: %s", msg, model_name, available_names)
     return False
 
 
 # ---------------------------------------------------------------------------
-# Main extractor — Local Ollama
+# Main extractor — PaddleOCR + local Ollama DeepSeek-R1
 # ---------------------------------------------------------------------------
 
-class QwenLocalExtractor:
-    """Extracts structured data from documents using Qwen2.5-VL via local Ollama.
-
-    Zero outbound APIqwen2.5vl:3b calls. The entire extraction pipeline runs locally.
-    """
+class PaddleDeepSeekExtractor:
+    """Extracts structured data using local PaddleOCR and DeepSeek-R1:8B via Ollama."""
 
     def __init__(self) -> None:
         settings = get_settings()
         self.ollama_url: str = settings.ollama_url
-        self.model: str = settings.qwen_model
+        self.model: str = settings.ollama_model
         self._model_verified = False
+        self._ocr_engine = None
+
+    def _init_ocr(self) -> None:
+        """Lazily initialize PaddleOCR engine to speed up startup checks."""
+        if self._ocr_engine is None:
+            # pyrefly: ignore [missing-import]
+            from paddleocr import PaddleOCR
+            LOGGER.info("Initializing PaddleOCR engine...")
+            self._ocr_engine = PaddleOCR(
+                ocr_version="PP-OCRv4",
+                lang="en",
+                use_doc_orientation_classify=False,
+                use_doc_unwarping=False,
+                use_textline_orientation=False,
+                enable_mkldnn=False
+            )
+            LOGGER.info("PaddleOCR engine initialized successfully.")
 
     def verify_model(self) -> bool:
-        """Run startup verification. Called once during app init."""
+        """Run startup verification for Ollama model and lazily initialize OCR."""
         self._model_verified = verify_ollama_model(self.ollama_url, self.model)
+        if self._model_verified:
+            try:
+                self._init_ocr()
+            except Exception as exc:
+                LOGGER.error("Failed to initialize PaddleOCR during verification: %s", exc)
+                return False
         return self._model_verified
-
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
+    
+    def ensure_initialized(self) -> None:
+        """Ensure OCR and model are initialized once at startup."""
+        if not self._model_verified:
+            self.verify_model()
+        self._init_ocr()
 
     def extract(self, file_path: str | Path) -> ExtractionResult:
-        """Run extraction on a single file and return the result."""
+        """Run PaddleOCR followed by local DeepSeek-R1:8B extraction."""
         file_path = Path(file_path)
-        LOGGER.info("Qwen local extraction started file=%s", file_path.name)
+        LOGGER.info("PaddleOCR + DeepSeek local extraction started for file=%s", file_path.name)
 
-        if not self._model_verified:
-            # Re-check in case Ollama came up after initial startup
-            self._model_verified = verify_ollama_model(self.ollama_url, self.model)
+        # OCR and model verification happens once at startup
 
+        # Page rendering
         pages = _render_pages(file_path)
         page_count = len(pages)
 
-        start = time.perf_counter()
-        raw_response, parsed_json = self._call_ollama(pages)
-        inference_time = time.perf_counter() - start
+        # Stage 1: PaddleOCR
+        ocr_start = time.perf_counter()
+        ocr_texts = []
+        for i, page_img in enumerate(pages):
+            LOGGER.info("Running PaddleOCR on page %d/%d for %s", i + 1, page_count, file_path.name)
+            img_np = np.array(page_img)
+            # Convert RGBA to RGB if necessary
+            if img_np.ndim == 3 and img_np.shape[2] == 4:
+                img_np = np.array(page_img.convert("RGB"))
+            
+            # PaddleOCR expects numpy array
+            result = self._ocr_engine.ocr(img_np)
+            LOGGER.info("Raw PaddleOCR output on page %d: %s", i + 1, result)
+            
+            page_text_lines = []
+            if result and result[0]:
+                rec_texts = result[0].get("rec_texts", [])
+                if rec_texts:
+                    page_text_lines = [str(t) for t in rec_texts if t is not None]
+            ocr_texts.append("\n".join(page_text_lines))
 
-        LOGGER.info("Inference time: %.2fs", inference_time)
-        LOGGER.info("Qwen inference time: %.2fs for %s", inference_time, file_path.name)
+        raw_ocr_text = "\n\n--- PAGE BREAK ---\n\n".join(ocr_texts)
+        ocr_time = time.perf_counter() - ocr_start
+        LOGGER.info("PaddleOCR extraction completed in %.2fs", ocr_time)
+        LOGGER.info("OCR Text Length: %d", len(raw_ocr_text))
+        LOGGER.info("First 500 characters of OCR text:\n%s", raw_ocr_text[:500])
+
+        # Stage 2: DeepSeek-R1 structuring via local Ollama
+        llm_start = time.perf_counter()
+        formatted_prompt = EXTRACTION_PROMPT.format(document_text=raw_ocr_text)
+        
+        raw_response, parsed_json = self._call_ollama(formatted_prompt)
+        llm_time = time.perf_counter() - llm_start
+        LOGGER.info("DeepSeek-R1 LLM structuring completed in %.2fs", llm_time)
 
         if parsed_json is None:
-            LOGGER.warning("Qwen returned no valid JSON for %s", file_path.name)
+            LOGGER.warning("DeepSeek-R1 returned no valid JSON for %s", file_path.name)
             parsed_json = {}
 
-        # Determine document type from the model's response
+        # Normalise document type
         doc_type_raw = parsed_json.pop("document_type", None) or "other_financial_document"
         doc_type = _normalise_doc_type(str(doc_type_raw))
 
+        # Fix document number extraction: prefer numeric identifier over label text
+        if "document_number" in parsed_json and parsed_json["document_number"]:
+            doc_num = str(parsed_json["document_number"]).strip()
+            # Check if the document number looks like a numeric identifier (contains only digits/numbers)
+            if re.fullmatch(r"\d+", doc_num):
+                # If it looks like a numeric identifier, keep it as is
+                pass
+            else:
+                # If it looks like label text (e.g., "CREDIT INVOICE"), try to extract numeric identifier
+                # Look for numeric patterns in the OCR text
+                numeric_match = re.search(r'\b(\d{5,})\b', raw_ocr_text)
+                if numeric_match:
+                    parsed_json["document_number"] = numeric_match.group(1)
+
         # Confidence heuristic based on field completeness
         non_null_fields = sum(1 for v in parsed_json.values() if v is not None and v != "")
-        if non_null_fields >= 3:
-            confidence = 0.92
-        elif non_null_fields >= 1:
-            confidence = 0.78
+        if non_null_fields >= 4:
+            confidence = 0.95
+        elif non_null_fields >= 2:
+            confidence = 0.82
         else:
-            confidence = 0.55
+            confidence = 0.58
 
+        total_time = ocr_time + llm_time
         LOGGER.info(
-            "Qwen local extraction completed file=%s doc_type=%s fields=%d inference_time=%.2fs",
-            file_path.name, doc_type, non_null_fields, inference_time,
+            "Extraction complete file=%s doc_type=%s fields=%d ocr_time=%.2fs llm_time=%.2fs total_time=%.2fs",
+            file_path.name, doc_type, non_null_fields, ocr_time, llm_time, total_time
         )
 
         return ExtractionResult(
             document_type=doc_type,
             extracted_json=parsed_json,
             raw_response=raw_response,
+            ocr_text=raw_ocr_text,
             confidence=confidence,
             page_count=page_count,
-            processing_time=inference_time,
+            ocr_time=ocr_time,
+            llm_time=llm_time,
+            processing_time=total_time,
         )
 
-    # ------------------------------------------------------------------
-    # Ollama API call (local, no outbound network)
-    # ------------------------------------------------------------------
-
-    def _call_ollama(self, pages: list[Image.Image]) -> tuple[str, dict[str, Any] | None]:
-        """Send images to local Ollama's /api/chat endpoint and return (raw, parsed)."""
+    def _call_ollama(self, prompt: str) -> tuple[str, dict[str, Any] | None]:
+        """Send prompt to local Ollama /api/chat endpoint."""
         from urllib import error, request as urllib_request
 
-        # Encode all page images as base64
-        image_b64_list = [_image_to_base64(img) for img in pages]
-
-        # Build the Ollama chat API payload
-        # Ollama's /api/chat accepts "images" as a list of base64 strings in each message
         payload = {
             "model": self.model,
             "messages": [
                 {
                     "role": "user",
-                    "content": EXTRACTION_PROMPT,
-                    "images": image_b64_list,
+                    "content": prompt,
                 }
             ],
             "stream": False,
@@ -339,14 +367,12 @@ class QwenLocalExtractor:
         )
 
         try:
-            # Local inference can take a while on large documents
             with urllib_request.urlopen(req, timeout=300) as response:
                 raw = response.read().decode("utf-8")
         except error.URLError as exc:
             LOGGER.error("Ollama request failed: %s", exc)
             return "", None
 
-        # Parse the Ollama response structure
         try:
             api_response = json.loads(raw)
             message_content = api_response.get("message", {}).get("content", "")

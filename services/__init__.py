@@ -6,14 +6,14 @@ from typing import Any
 __all__ = [
     "DocumentValidator",
     "ExportService",
-    "QwenLocalExtractor",
+    "PaddleDeepSeekExtractor",
     "DocumentWorkflow",
 ]
 
 _EXPORTS = {
     "DocumentValidator": ("services.validation", "DocumentValidator"),
     "ExportService": ("services.export_service", "ExportService"),
-    "QwenLocalExtractor": ("services.qwen_local", "QwenLocalExtractor"),
+    "PaddleDeepSeekExtractor": ("services.paddle_deepseek", "PaddleDeepSeekExtractor"),
     "DocumentWorkflow": ("services.workflow", "DocumentWorkflow"),
 }
 

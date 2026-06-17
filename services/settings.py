@@ -13,7 +13,9 @@ class AppSettings:
     exports_dir: Path = Path(os.getenv("EXPORTS_DIR", "exports"))
     secret_key: str = os.getenv("SECRET_KEY", "idp-secret-key")
     ollama_url: str = os.getenv("OLLAMA_URL", "http://localhost:11434")
-    qwen_model: str = os.getenv("QWEN_MODEL", "qwen2.5vl:3b")
+    ollama_model: str = os.getenv("OLLAMA_MODEL", "deepseek-r1:8b")
+    ollama_classification_model: str = os.getenv("OLLAMA_CLASSIFICATION_MODEL", "qwen2.5-cpu:0.5b")
+    ollama_validation_model: str = os.getenv("OLLAMA_VALIDATION_MODEL", "qwen2.5vl-cpu:3b")
 
 
 @lru_cache(maxsize=1)

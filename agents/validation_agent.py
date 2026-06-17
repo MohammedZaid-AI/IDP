@@ -21,3 +21,8 @@ def validate_json(data: str | dict[str, Any], document_type: str = "invoice") ->
         "data": payload,
         "score": result.score,
     }
+
+
+def validate_json_with_qwen(data: str | dict[str, Any], document_type: str = "invoice") -> dict[str, Any]:
+    """Validate extracted JSON using Qwen2.5:3B (legacy function for backward compatibility)."""
+    return validate_json(data, document_type)

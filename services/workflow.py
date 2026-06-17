@@ -1,6 +1,6 @@
-"""Document processing workflow — Qwen2.5-VL single-shot pipeline.
+"""Document processing workflow — Multi-model pipeline.
 
-Flow:  Upload → Qwen Extract → Validate → Score → Persist
+Flow: Upload → PaddleOCR → Classification → Extraction → Validation → Confidence → Persist
 """
 
 from __future__ import annotations
@@ -11,12 +11,10 @@ import time
 from pathlib import Path
 from typing import Any, TypedDict
 
-from agents.confidence_agent import confidence_score
-from agents.validation_agent import validate_json
 from database.db import SessionLocal
 from database.repository import save_processed_document
 from schemas.documents import ProcessingResult
-from services.qwen_local import QwenLocalExtractor, ProcessingTimings
+from services.multi_model import ProcessingResult as MultiModelProcessingResult, orchestrator
 
 LOGGER = logging.getLogger(__name__)
 
@@ -40,15 +38,15 @@ class WorkflowState(TypedDict, total=False):
     timings: dict[str, float]
 
 
-class DocumentWorkflow:
-    """Simplified 4-step workflow: extract → validate → score → persist."""
+class MultiModelDocumentWorkflow:
+    """Multi-model workflow: PaddleOCR → Classification → Extraction → Validation → Confidence → Persist."""
 
     def __init__(self) -> None:
-        self._extractor = QwenLocalExtractor()
+        self._orchestrator = orchestrator
 
     def process_file(self, file_path: str | Path, original_filename: str | None = None) -> ProcessingResult:
         original_filename = original_filename or Path(file_path).name
-        LOGGER.info("Workflow started for %s", original_filename)
+        LOGGER.info("Multi-model workflow started for %s", original_filename)
 
         state: WorkflowState = {
             "file_path": str(file_path),
@@ -58,16 +56,10 @@ class DocumentWorkflow:
             "timings": {},
         }
 
-        # Step 1: Qwen extraction (classification + extraction in one call)
-        state = self._extract_node(state)
+        # Step 1: Multi-model processing
+        state = self._process_node(state)
 
-        # Step 2: Validation
-        state = self._validate_node(state)
-
-        # Step 3: Confidence scoring
-        state = self._score_node(state)
-
-        # Step 4: Persist to database
+        # Step 2: Persist to database
         state = self._persist_node(state)
 
         elapsed = round(float(state.get("processing_time", 0.0)), 2)
@@ -77,13 +69,38 @@ class DocumentWorkflow:
         timings = state.get("timings", {})
         timings["total_time"] = elapsed
 
+        # Log detailed timing breakdown
+        LOGGER.info(
+            "Processing timing breakdown for %s | OCR=%.2fs Classification=%.2fs Extraction=%.2fs Validation=%.2fs Confidence=%.2fs Total=%.2fs",
+            original_filename,
+            timings.get("ocr_time", 0.0),
+            timings.get("classification_time", 0.0),
+            timings.get("extraction_time", 0.0),
+            timings.get("validation_time", 0.0),
+            timings.get("confidence_time", 0.0),
+            elapsed,
+        )
+        
+        # Log field extraction summary
+        if state.get("json_output"):
+            extracted_fields = state["json_output"]
+            non_null_fields = sum(1 for v in extracted_fields.values() if v not in (None, "", []))
+            LOGGER.info(
+                "Field extraction summary for %s | document_type=%s fields_extracted=%d/%d confidence=%.2f",
+                original_filename,
+                state.get("document_type", "unknown"),
+                non_null_fields,
+                len(extracted_fields),
+                float(state.get("confidence", 0.0)),
+            )
+
         LOGGER.info("Total processing time: %.2fs", elapsed)
         LOGGER.info(
-            "Workflow completed for %s | status=%s confidence=%.2f engine=%s total_time=%.2fs",
+            "Multi-model workflow completed for %s | status=%s confidence=%.2f engine=%s total_time=%.2fs",
             original_filename,
             state.get("status"),
             float(state.get("confidence", 0.0)),
-            state.get("extraction_engine", "qwen2.5-vl"),
+            state.get("extraction_engine", "multi-model"),
             elapsed,
         )
 
@@ -93,7 +110,7 @@ class DocumentWorkflow:
             document_type=state.get("document_type", "other_financial_document"),
             status=state.get("status", "pending_review"),
             confidence=float(state.get("confidence", 0.0)),
-            extraction_engine=state.get("extraction_engine", "qwen2.5-vl"),
+            extraction_engine=state.get("extraction_engine", "multi-model"),
             validation=validation_payload if isinstance(validation_payload, dict) else validation_payload.model_dump(),
             json_output=state.get("json_output", {}),
             raw_text=state.get("raw_text", ""),
@@ -108,70 +125,59 @@ class DocumentWorkflow:
     # Pipeline nodes
     # ------------------------------------------------------------------
 
-    def _extract_node(self, state: WorkflowState) -> WorkflowState:
-        LOGGER.info("Qwen extraction stage started for %s", state.get("original_filename", state["filename"]))
-        t0 = time.perf_counter()
+    def _process_node(self, state: WorkflowState) -> WorkflowState:
+        LOGGER.info("Multi-model processing stage started for %s", state.get("original_filename", state["filename"]))
 
-        result = self._extractor.extract(state["file_path"])
+        result = self._orchestrator.process_file(state["file_path"])
 
-        qwen_time = time.perf_counter() - t0
-        state["timings"]["qwen_time"] = round(qwen_time, 3)
-
-        state["document_type"] = result.document_type
-        state["json_output"] = result.extracted_json
-        state["raw_text"] = result.raw_response
-        state["raw_llm_response"] = result.raw_response
-        state["extraction_engine"] = "qwen2.5-vl"
-        state["page_count"] = result.page_count
-
-        LOGGER.info("Inference time: %.2fs", qwen_time)
-        LOGGER.info(
-            "Qwen extraction completed for %s | doc_type=%s qwen_time=%.2fs",
-            state.get("original_filename", state["filename"]),
-            result.document_type,
-            qwen_time,
-        )
-        return state
-
-    def _validate_node(self, state: WorkflowState) -> WorkflowState:
-        LOGGER.info("Validation stage started for %s", state.get("original_filename", state["filename"]))
-        t0 = time.perf_counter()
-
-        validation = validate_json(state.get("json_output", {}), state["document_type"])
-
-        validation_time = time.perf_counter() - t0
-        state["timings"]["validation_time"] = round(validation_time, 3)
-
-        if validation.get("data") is not None:
-            state["json_output"] = validation["data"]
-
-        state["validation"] = {
-            "valid": bool(validation.get("valid")),
-            "issues": self._validation_issues(validation.get("issues", [])),
-            "score": float(validation.get("score", 0.0)),
-            "required_fields": [],
+        # Extract stage timings
+        timings = {
+            "ocr_time": result.ocr_result.ocr_time,
+            "classification_time": result.classification_result.classification_time,
+            "extraction_time": result.extraction_result.extraction_time,
+            "validation_time": result.validation_result.validation_time,
+            "confidence_time": result.confidence_result.confidence_time,
+            "total_time": result.total_time,
         }
 
-        LOGGER.info(
-            "Validation completed for %s | valid=%s score=%.2f validation_time=%.3fs",
-            state.get("original_filename", state["filename"]),
-            state["validation"]["valid"],
-            state["validation"]["score"],
-            validation_time,
-        )
-        return state
+        state["timings"].update(timings)
+        state["document_type"] = result.document_type
+        state["json_output"] = result.extraction_result.extracted_json
+        state["raw_text"] = result.raw_ocr_text
+        state["raw_llm_response"] = result.extraction_result.raw_response
+        state["extraction_engine"] = "multi-model"
+        state["page_count"] = result.ocr_result.page_count
+        # Map validation result to schema expectation
+        val_res = result.validation_result
+        state["validation"] = {
+            "valid": val_res.is_valid,
+            "issues": self._validation_issues(val_res.issues),
+            "score": val_res.score,
+            "required_fields": val_res.required_fields_missing,
+        }
+        state["confidence"] = result.confidence_result.confidence
 
-    def _score_node(self, state: WorkflowState) -> WorkflowState:
-        LOGGER.info("Confidence scoring started for %s", state.get("original_filename", state["filename"]))
-        conf = confidence_score(state.get("validation", {}))
-        state["confidence"] = conf
-        state["status"] = "Approved" if conf >= 0.90 else "Needs Review"
-        LOGGER.info("Confidence scoring completed | confidence=%.2f status=%s", conf, state["status"])
+        LOGGER.info(
+            "Multi-model processing completed for %s | doc_type=%s total_time=%.2fs ocr=%.2fs classification=%.2fs extraction=%.2fs validation=%.2fs confidence=%.2fs",
+            state.get("original_filename", state["filename"]),
+            result.document_type,
+            result.total_time,
+            result.ocr_result.ocr_time,
+            result.classification_result.classification_time,
+            result.extraction_result.extraction_time,
+            result.validation_result.validation_time,
+            result.confidence_result.confidence_time,
+        )
         return state
 
     def _persist_node(self, state: WorkflowState) -> WorkflowState:
         LOGGER.info("Database save started for %s", state.get("original_filename", state["filename"]))
         elapsed = round(time.perf_counter() - float(state.get("started_at", time.perf_counter())), 2)
+
+        # Populate total time in timings
+        timings = state.get("timings", {})
+        timings["total_time"] = elapsed
+
         with SessionLocal() as session:
             document = save_processed_document(
                 session,
@@ -187,7 +193,8 @@ class DocumentWorkflow:
                 raw_text=state.get("raw_text", ""),
                 raw_llm_response=state.get("raw_llm_response", ""),
                 validation_result=state.get("validation", {}),
-                engine=state.get("extraction_engine", "qwen2.5-vl"),
+                engine=state.get("extraction_engine", "multi-model"),
+                processing_timings=timings,
             )
             state["document_id"] = document.id
         state["processing_time"] = elapsed
@@ -218,4 +225,4 @@ class DocumentWorkflow:
         return normalized
 
 
-workflow = DocumentWorkflow()
+workflow = MultiModelDocumentWorkflow()

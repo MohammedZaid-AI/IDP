@@ -33,6 +33,7 @@ def create_document(
     processing_time: float = 0.0,
     page_count: int = 1,
     extraction_engine: str = "hybrid",
+    processing_timings: dict[str, float] | str = "{}",
     session_id: int | None = None,
 ) -> Document:
     extracted_json_payload = _json_payload(extracted_json)
@@ -53,6 +54,8 @@ def create_document(
         status=status,
         processing_time=processing_time,
         page_count=page_count,
+        extraction_engine=extraction_engine,
+        processing_timings=_json_payload(processing_timings),
     )
     session.add(document)
     session.flush()

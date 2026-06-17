@@ -61,6 +61,7 @@ def _ensure_document_columns() -> None:
         "validation_result": "TEXT NOT NULL DEFAULT '{}'",
         "excel_file_path": "VARCHAR(500) NOT NULL DEFAULT ''",
         "extraction_engine": "VARCHAR(100) NOT NULL DEFAULT 'qwen2.5-vl'",
+        "processing_timings": "TEXT NOT NULL DEFAULT '{}'",
     }
     with engine.begin() as connection:
         existing_columns = {

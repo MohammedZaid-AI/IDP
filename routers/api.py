@@ -34,7 +34,6 @@ LOGGER = logging.getLogger(__name__)
 SUPPORTED_UPLOAD_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".webp"}
 
 
-
 @api_router.get("/metrics/dashboard")
 def dashboard_metrics_api() -> JSONResponse:
     with SessionLocal() as session:
@@ -122,88 +121,102 @@ def document_detail_api(document_id: int) -> JSONResponse:
 
 @api_router.post("/upload")
 async def upload_documents(request: Request) -> JSONResponse:
-    form = await request.form()
-    files = form.getlist("files")
-    if not files:
-        LOGGER.warning("Upload request received with no files")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No files uploaded")
+    LOGGER.info("Request received")
+    try:
+        form = await request.form()
+        files = form.getlist("files")
+        if not files:
+            LOGGER.warning("Upload request received with no files")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No files uploaded")
 
-    LOGGER.info("Upload request received with %s file(s)", len(files))
+        LOGGER.info("Upload request received with %s file(s)", len(files))
 
-    # 1. Generate session name
-    first_filename = Path(files[0].filename or "Document").name
-    if len(files) == 1:
-        session_name = first_filename
-    else:
-        session_name = f"{first_filename} and {len(files) - 1} other files"
+        # 1. Generate session name
+        first_filename = Path(files[0].filename or "Document").name
+        if len(files) == 1:
+            session_name = first_filename
+        else:
+            session_name = f"{first_filename} and {len(files) - 1} other files"
 
-    # 2. Create the session in the database
-    with SessionLocal() as session:
-        db_session = create_processing_session(session, name=session_name)
-        session_id = db_session.id
+        # 2. Create the session in the database
+        with SessionLocal() as session:
+            db_session = create_processing_session(session, name=session_name)
+            session_id = db_session.id
 
-    results: list[dict[str, Any]] = []
-    combined_results: list[dict[str, Any]] = []
-    for upload in files:
-        original_filename = Path(upload.filename or "uploaded_file").name
-        suffix = Path(original_filename).suffix.lower()
-        if suffix not in SUPPORTED_UPLOAD_EXTENSIONS:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported file type for {original_filename}. Supported types: PDF, PNG, JPG, JPEG, TIFF, BMP, WEBP",
+        results: list[dict[str, Any]] = []
+        combined_results: list[dict[str, Any]] = []
+        for upload in files:
+            original_filename = Path(upload.filename or "uploaded_file").name
+            suffix = Path(original_filename).suffix.lower()
+            if suffix not in SUPPORTED_UPLOAD_EXTENSIONS:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Unsupported file type for {original_filename}. Supported types: PDF, PNG, JPG, JPEG, TIFF, BMP, WEBP",
+                )
+
+            LOGGER.info("Processing started for %s", upload.filename)
+            content = await upload.read()
+            saved_path = file_service.save_upload(original_filename, content)
+            result = workflow.process_file(saved_path, original_filename=original_filename)
+            result_payload = result.model_dump()
+            results.append(result_payload)
+            combined_results.append(
+                _combined_export_record(
+                    filename=original_filename,
+                    document_type=result.document_type,
+                    extracted_json=result.json_output,
+                )
             )
+            LOGGER.info("Processing completed for %s with status=%s", original_filename, result.status)
 
-        LOGGER.info("Processing started for %s", upload.filename)
-        content = await upload.read()
-        saved_path = file_service.save_upload(original_filename, content)
-        result = workflow.process_file(saved_path, original_filename=original_filename)
-        result_payload = result.model_dump()
-        results.append(result_payload)
-        combined_results.append(
-            _combined_export_record(
-                filename=original_filename,
-                document_type=result.document_type,
-                extracted_json=result.json_output,
-            )
+            # 3. Associate document with the session_id
+            with SessionLocal() as session:
+                db_doc = session.get(Document, result.document_id)
+                if db_doc:
+                    db_doc.session_id = session_id
+                    session.commit()
+
+        excel_url = None
+        export_filename = "invoice" if len(files) == 1 else "combined_export"
+        if combined_results:
+            excel_path = export_service.export_uploaded_records(combined_results, export_filename)
+            abs_excel_path = excel_path.resolve()
+            LOGGER.info("Excel generated at: %s (exists=%s)", abs_excel_path, abs_excel_path.exists())
+            excel_url = f"/api/download-temp?file={abs_excel_path.name}"
+            excel_file_path = str(excel_path)
+            with SessionLocal() as session:
+                # Update excel path on the session itself
+                db_sess = session.get(ProcessingSession, session_id)
+                if db_sess:
+                    db_sess.excel_file_path = excel_file_path
+                    session.commit()
+                # Update excel path on each document as well
+                for result in results:
+                    document_id = result.get("document_id")
+                    if document_id is not None:
+                        update_document_excel_path(session, int(document_id), excel_file_path)
+                        result["excel_file_path"] = excel_file_path
+
+        LOGGER.info("Upload request completed")
+        LOGGER.info("Response returned")
+        return JSONResponse({
+            "message": "Documents processed",
+            "results": results,
+            "excel_url": excel_url,
+            "excel_filename": f"{export_filename}.xlsx",
+            "session_id": session_id,
+        })
+    except Exception as exc:
+        import traceback
+        error_trace = traceback.format_exc()
+        LOGGER.error("Exception in POST /api/upload: %s\n%s", exc, error_trace)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "detail": f"Internal Server Error: {str(exc)}",
+                "traceback": error_trace
+            }
         )
-        LOGGER.info("Processing completed for %s with status=%s", original_filename, result.status)
-
-        # 3. Associate document with the session_id
-        with SessionLocal() as session:
-            db_doc = session.get(Document, result.document_id)
-            if db_doc:
-                db_doc.session_id = session_id
-                session.commit()
-
-    excel_url = None
-    export_filename = "invoice" if len(files) == 1 else "combined_export"
-    if combined_results:
-        excel_path = export_service.export_uploaded_records(combined_results, export_filename)
-        abs_excel_path = excel_path.resolve()
-        LOGGER.info("Excel generated at: %s (exists=%s)", abs_excel_path, abs_excel_path.exists())
-        excel_url = f"/api/download-temp?file={abs_excel_path.name}"
-        excel_file_path = str(excel_path)
-        with SessionLocal() as session:
-            # Update excel path on the session itself
-            db_sess = session.get(ProcessingSession, session_id)
-            if db_sess:
-                db_sess.excel_file_path = excel_file_path
-                session.commit()
-            # Update excel path on each document as well
-            for result in results:
-                document_id = result.get("document_id")
-                if document_id is not None:
-                    update_document_excel_path(session, int(document_id), excel_file_path)
-                    result["excel_file_path"] = excel_file_path
-
-    LOGGER.info("Upload request completed")
-    return JSONResponse({
-        "message": "Documents processed",
-        "results": results,
-        "excel_url": excel_url,
-        "excel_filename": f"{export_filename}.xlsx",
-        "session_id": session_id,
-    })
 
 
 def _combined_export_record(filename: str, document_type: str, extracted_json: dict[str, Any]) -> dict[str, Any]:
@@ -264,7 +277,6 @@ def download_temp_file(request: Request) -> FileResponse:
     )
 
 
-
 @api_router.get("/documents/{document_id}/download/{export_format}")
 def download_document(document_id: int, export_format: str) -> FileResponse:
     with SessionLocal() as session:
@@ -283,7 +295,7 @@ def download_document(document_id: int, export_format: str) -> FileResponse:
             "id": document.id,
             "filename": document.filename,
             "document_type": document.document_type,
-            "json_output": json.loads(document.extracted_json or document.json_output or "{}"),
+            "json_output": json.loads(document.json_output or document.extracted_json or "{}"),
             "confidence": document.confidence,
             "status": document.status,
             "created_at": document.created_at.isoformat(),
@@ -333,4 +345,3 @@ def delete_session_api(session_id: int) -> JSONResponse:
         if not delete_processing_session(session, session_id):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
         return JSONResponse({"message": "Session deleted"})
-

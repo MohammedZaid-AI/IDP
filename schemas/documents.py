@@ -62,7 +62,7 @@ class ProcessingResult(BaseModel):
     excel_file_path: str = ""
     processing_time: float
     page_count: int = 1
-    processing_timings: dict[str, float] = Field(default_factory=dict)
+    processing_timings: dict[str, Any] = Field(default_factory=dict)
 
 
 class DashboardMetrics(BaseModel):

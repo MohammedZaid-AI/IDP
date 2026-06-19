@@ -7,7 +7,7 @@ from pathlib import Path
 from sqlalchemy import text
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import StaticPool, QueuePool
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 
@@ -26,7 +26,17 @@ def build_engine(database_url: str | None = None) -> Engine:
     engine_kwargs = {"future": True}
     if url.startswith("sqlite"):
         engine_kwargs["connect_args"] = {"check_same_thread": False}
+        # Use StaticPool for SQLite to improve performance
         engine_kwargs["poolclass"] = StaticPool
+        # StaticPool doesn't use pool_size or max_overflow parameters
+        # These parameters are only for QueuePool
+    else:
+        # For production databases, use QueuePool with connection pooling
+        engine_kwargs["poolclass"] = QueuePool
+        engine_kwargs["pool_size"] = 10
+        engine_kwargs["max_overflow"] = 20
+        engine_kwargs["pool_timeout"] = 30
+        engine_kwargs["pool_recycle"] = 3600
     return create_engine(url, **engine_kwargs)
 
 

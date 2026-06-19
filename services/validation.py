@@ -33,6 +33,11 @@ class DocumentValidator:
                 missing_fields.append(field_name)
                 issues.append(ValidationIssue(field=field_name, message="Missing required field"))
 
+        # Validate document_number field
+        if "document_number" in payload and payload.get("document_number") not in (None, ""):
+            if not self._is_valid_invoice_number(payload.get("document_number")):
+                issues.append(ValidationIssue(field="document_number", message="Invalid document number format"))
+
         # Validate amount fields
         amount_fields = [key for key in payload if "amount" in key.lower() or key in ("subtotal",)]
         for field_name in amount_fields:
@@ -63,11 +68,31 @@ class DocumentValidator:
 
     @staticmethod
     def _looks_like_amount(value: Any) -> bool:
+        val_str = str(value).strip()
+        # Reject if there are alphabetic characters mixed in (unless it's just currency symbols which were supposed to be stripped)
+        if re.search(r'[a-zA-Z]', val_str):
+            return False
+        # Must contain digits
+        if not re.search(r'\d', val_str):
+            return False
         try:
-            float(str(value).replace(",", "").strip())
+            # Check if it parses as float after removing commas
+            float(val_str.replace(",", ""))
             return True
-        except Exception:
-            return bool(re.search(r"\d", str(value)))
+        except ValueError:
+            return False
+
+    @staticmethod
+    def _is_valid_invoice_number(value: Any) -> bool:
+        val_str = str(value).strip()
+        if not val_str:
+            return False
+        # Accept alphanumeric, dashes, slashes, but must have at least one digit
+        if not re.search(r'\d', val_str):
+            return False
+        if not re.fullmatch(r'[A-Za-z0-9\-\/\\]+', val_str):
+            return False
+        return True
 
     @staticmethod
     def _looks_like_date(value: str) -> bool:

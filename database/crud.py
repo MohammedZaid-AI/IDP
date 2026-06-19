@@ -79,6 +79,10 @@ def create_document(
                     "status": status,
                     "confidence": confidence,
                     "engine": extraction_engine,
+                    "ocr_text": ocr_text,
+                    "raw_llm_response": raw_llm_response,
+                    "json_output": extracted_json_payload,
+                    "validation_corrections": validation_payload,
                 }
             ),
         )
@@ -219,4 +223,3 @@ def delete_processing_session(session: Session, session_id: int) -> bool:
     session.delete(db_session)
     session.commit()
     return True
-

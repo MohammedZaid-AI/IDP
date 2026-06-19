@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 from typing import Any
+import re
+from datetime import datetime
 
 import fitz  # PyMuPDF
 import numpy as np
@@ -107,10 +109,7 @@ def _render_pages(file_path: Path) -> list[Image.Image]:
 
 
 def _clean_document_number(doc_number: str | None, ocr_text: str) -> str:
-    if not doc_number:
-        return ""
-        
-    doc_num_clean = str(doc_number).strip()
+    doc_num_clean = str(doc_number or "").strip()
     
     # Check if doc_number is a label text (like "CREDIT INVOICE", "INVOICE", "CREDIT NOTE")
     # If it contains text but no digits, or matches known text labels, it's a label, not a number!
@@ -120,11 +119,13 @@ def _clean_document_number(doc_number: str | None, ocr_text: str) -> str:
         "debit note", "purchase order", "tax invoice", "statement", "credit_invoice", "creditnote"
     ) or (not has_digits and len(doc_num_clean) > 3)
     
-    if is_label:
+    if not doc_num_clean or is_label:
         import re
-        # Let's search for keywords first
+        # Let's search for keywords first, including OCR typos
         keywords = [
-            r"invoice\s*no", r"inv\s*no", r"document\s*no", r"reference\s*no", 
+            r"[iI]?[nN]voice\s*no", r"[iI]?[nN]voiceNo", r"[iI]?[nN]volceNo", 
+            r"[mM]volceNo", r"[vV]oice\s*No", r"[vV]oiceNo",
+            r"inv\s*no", r"document\s*no", r"reference\s*no", 
             r"ref\s*no", r"number", r"no\b", r"ref\b", r"credit\s*note\s*no", 
             r"credit\s*invoice\s*no"
         ]
@@ -153,6 +154,51 @@ def _clean_document_number(doc_number: str | None, ocr_text: str) -> str:
     return doc_num_clean
 
 
+def _clean_extracted_fields(parsed_json: dict[str, Any]) -> dict[str, Any]:
+    if not parsed_json:
+        return {}
+    
+    # Reject amount values containing letters
+    for field in ["total_amount", "subtotal", "tax_amount"]:
+        val = parsed_json.get(field)
+        if val is not None:
+            val_str = str(val)
+            if re.search(r'[A-Za-z]', val_str):
+                parsed_json[field] = None
+
+    # Validate document_number using regex
+    doc_num = parsed_json.get("document_number")
+    if doc_num is not None:
+        doc_num_str = str(doc_num).strip()
+        if not re.fullmatch(r"^[A-Za-z0-9\-\/\.\s]+$", doc_num_str) or not re.search(r"\d", doc_num_str):
+            parsed_json["document_number"] = None
+
+    # Normalize dates to YYYY-MM-DD
+    for field in ["document_date"]:
+        date_val = parsed_json.get(field)
+        if date_val:
+            date_str = str(date_val).strip()
+            try:
+                from dateutil import parser
+                parsed = parser.parse(date_str, fuzzy=True)
+                parsed_json[field] = parsed.strftime("%Y-%m-%d")
+            except Exception:
+                parsed_json[field] = None
+
+    # Add confidence scoring per field
+    confidences = {}
+    for key, value in list(parsed_json.items()):
+        if key == "_confidences":
+            continue
+        if value in (None, "", [], {}):
+            confidences[key] = 0.0
+        else:
+            confidences[key] = 1.0
+    parsed_json["_confidences"] = confidences
+
+    return parsed_json
+
+
 # ---------------------------------------------------------------------------
 # PaddleOCR service
 # ---------------------------------------------------------------------------
@@ -163,6 +209,7 @@ class PaddleOCRService:
 
     def __init__(self) -> None:
         self._ocr_engine = None
+        self._model_verified = False
 
     def _init_ocr(self) -> None:
         """Lazily initialize PaddleOCR engine to speed up startup checks."""
@@ -177,7 +224,9 @@ class PaddleOCRService:
                 use_doc_orientation_classify=False,
                 use_doc_unwarping=False,
                 use_textline_orientation=False,
-                enable_mkldnn=False
+                enable_mkldnn=False,
+                cpu_threads=6,
+                rec_batch_num=6
             )
             LOGGER.info("PaddleOCR engine initialized successfully.")
 
@@ -194,6 +243,14 @@ class PaddleOCRService:
     def ensure_initialized(self) -> None:
         """Ensure OCR is initialized - called once at startup."""
         self._init_ocr()
+        try:
+            LOGGER.info("Warming up PaddleOCR engine...")
+            import numpy as np
+            dummy_img = np.zeros((100, 100, 3), dtype=np.uint8)
+            self._ocr_engine.ocr(dummy_img)
+            LOGGER.info("PaddleOCR engine warmed up successfully.")
+        except Exception as exc:
+            LOGGER.error("Failed to warm up PaddleOCR engine: %s", exc)
 
     def extract_text(self, file_path: str | Path) -> OCRResult:
         """Extract text from document using PaddleOCR."""
@@ -210,7 +267,23 @@ class PaddleOCRService:
         ocr_start = time.perf_counter()
         ocr_texts = []
         for i, page_img in enumerate(pages):
-            LOGGER.info("Running PaddleOCR on page %d/%d for %s", i + 1, page_count, file_path.name)
+            w, h = page_img.size
+            LOGGER.info("Original image dimensions for page %d: %dx%d", i + 1, w, h)
+            
+            # Resize if either dimension is larger than 500px
+            max_size = 500
+            if max(w, h) > max_size:
+                if w > h:
+                    new_w = max_size
+                    new_h = int(h * (max_size / w))
+                else:
+                    new_h = max_size
+                    new_w = int(w * (max_size / h))
+                LOGGER.info("Resizing page %d from %dx%d to %dx%d for OCR optimization", i + 1, w, h, new_w, new_h)
+                page_img = page_img.resize((new_w, new_h), Image.Resampling.LANCZOS if hasattr(Image, "Resampling") else Image.LANCZOS)
+                w, h = page_img.size
+
+            LOGGER.info("Running PaddleOCR on page %d/%d (dimensions: %dx%d) for %s", i + 1, page_count, w, h, file_path.name)
             img_np = np.array(page_img)
             # Convert RGBA to RGB if necessary
             if img_np.ndim == 3 and img_np.shape[2] == 4:
@@ -218,10 +291,6 @@ class PaddleOCRService:
 
             # PaddleOCR expects numpy array
             result = self._ocr_engine.ocr(img_np)
-            
-            # DEBUG: Log raw OCR result structure
-            LOGGER.info("Raw OCR result type: %s", type(result))
-            LOGGER.info("Raw OCR result: %s", result)
             
             page_text_lines = []
             if result and result[0]:
@@ -233,10 +302,6 @@ class PaddleOCRService:
         raw_ocr_text = "\n\n--- PAGE BREAK ---\n\n".join(ocr_texts)
         ocr_time = time.perf_counter() - ocr_start
         LOGGER.info("PaddleOCR extraction completed in %.2fs", ocr_time)
-        
-        # DEBUG: Log OCR text details
-        LOGGER.info("OCR Text Length: %d", len(raw_ocr_text))
-        LOGGER.info("First 500 characters of OCR text:\n%s", raw_ocr_text[:500])
 
         total_time = ocr_time
         LOGGER.info(
@@ -296,12 +361,43 @@ class DocumentClassificationService:
         return False
 
     def classify(self, ocr_text: str) -> ClassificationResult:
-        """Classify document type using Qwen2.5:0.5B."""
-        LOGGER.info("Document classification started using Qwen2.5:0.5B")
-
-        # Model verification happens once at startup
-
+        """Classify document type using fast Python heuristics, falling back to Qwen2.5:0.5B."""
         classification_start = time.perf_counter()
+        
+        # Fast Python-based keyword heuristics
+        text_lower = ocr_text.lower()
+        
+        heuristics = [
+            ("tax invoice", "invoice"),
+            ("invoice", "invoice"),
+            ("bill to", "invoice"),
+            ("receipt", "receipt"),
+            ("sales receipt", "receipt"),
+            ("payment receipt", "receipt"),
+            ("purchase order", "purchase_order"),
+            ("po no", "purchase_order"),
+            ("credit note", "credit_note"),
+            ("credit memo", "credit_note"),
+            ("bank statement", "bank_statement"),
+            ("monthly statement", "bank_statement"),
+            ("debit note", "debit_note"),
+            ("tax document", "tax_document"),
+            ("tax form", "tax_document"),
+            ("balance sheet", "financial_report"),
+            ("income statement", "financial_report"),
+        ]
+        
+        for keyword, doc_type in heuristics:
+            if keyword in text_lower:
+                classification_time = time.perf_counter() - classification_start
+                LOGGER.info("Document classification completed in %.4fs (heuristic): %s", classification_time, doc_type)
+                return ClassificationResult(
+                    document_type=doc_type,
+                    classification_time=classification_time,
+                    processing_time=classification_time,
+                )
+
+        LOGGER.info("Document classification started using Qwen2.5:0.5B (no heuristic match)")
 
         prompt = (
             "You are an expert Intelligent Document Processing system.\n\n"
@@ -334,7 +430,7 @@ class DocumentClassificationService:
                 }
             ],
             "stream": False,
-            "keep_alive": -1,
+            "keep_alive": 0,
             "options": {
                 "temperature": 0.1,
                 "num_predict": 512,
@@ -412,7 +508,7 @@ class FieldExtractionService:
     def __init__(self) -> None:
         settings = get_settings()
         self.ollama_url: str = settings.ollama_url
-        self.model: str = "deepseek-r1:8b"
+        self.model: str = settings.ollama_model
         self._model_verified = False
 
     def verify_model(self) -> bool:
@@ -445,8 +541,8 @@ class FieldExtractionService:
         return False
 
     def extract_fields(self, ocr_text: str, document_type: str) -> ExtractionResult:
-        """Extract fields from document using DeepSeek-R1:8B."""
-        LOGGER.info("Field extraction started using DeepSeek-R1:8B")
+        """Extract fields from document using Ollama model."""
+        LOGGER.info("Field extraction started using %s", self.model)
 
         # Model verification happens once at startup
 
@@ -454,37 +550,46 @@ class FieldExtractionService:
 
         prompt = (
             "You are an expert Intelligent Document Processing system.\n\n"
-            "Analyze the following OCR-extracted text from a document:\n\n"
-            "--- START DOCUMENT TEXT ---\n"
+            "Analyze the following JSON extracted from a document by a vision model. It contains core fields and an 'amount_block' of raw text:\n\n"
+            "--- START EXTRACTED JSON ---\n"
             f"{ocr_text}\n"
-            "--- END DOCUMENT TEXT ---\n\n"
-            "Identify the document type.\n\n"
-            "Possible types:\n"
-            "- Invoice\n"
-            "- Receipt\n"
-            "- Bank Statement\n"
-            "- Credit Note\n"
-            "- Purchase Order\n"
-            "- Tax Document\n"
-            "- Financial Report\n"
-            "- Other Financial Document\n\n"
-            "Extract all available information.\n\n"
+            "--- END EXTRACTED JSON ---\n\n"
+            "Your task is to merge the core fields and apply financial reasoning to the 'amount_block' to extract final totals.\n\n"
+            "Apply the following rules carefully:\n"
+            "1. Map the directly extracted fields (document_number, document_date, vendor_name, customer_name, currency).\n"
+            "2. Determine 'document_type' (e.g. Invoice, Receipt) based on the context.\n"
+            "3. Tax Extraction (from amount_block):\n"
+            "   - If you see 'VAT Amt', 'VAT Amount', 'Tax Amount', or 'VAT', extract the numeric value into tax_amount.\n"
+            "   - If there are multiple VAT amounts, extract the HIGHEST numeric value as tax_amount.\n"
+            "   - NEVER return null for tax_amount if a VAT amount explicitly exists.\n"
+            "4. Total Extraction (from amount_block):\n"
+            "   - Look for any phrase containing 'Total', 'Gross Amt', 'Gross Amount', or 'Invoice Total' (e.g. 'Total Price', 'Total in SAR', 'Total Price FCA').\n"
+            "   - If found, extract the associated numeric value into total_amount.\n"
+            "   - If multiple totals exist, extract the HIGHEST numeric value.\n"
+            "   - NEVER return null for total_amount if one of those phrases exists.\n"
+            "5. Subtotal Extraction (from amount_block):\n"
+            "   - Extract into subtotal if explicitly present.\n"
+            "6. Normalizations & Constraints:\n"
+            "   - Convert European formatting (e.g. 276,00 -> 276.00, 20,085.71 -> 20085.71). Remove currency symbols.\n"
+            "   - Never hallucinate values. If a value is not explicitly present, return null.\n\n"
             "Return ONLY valid JSON.\n"
             "Do not explain.\n"
             "Do not wrap with ```json.\n\n"
-            "If a field is missing use null.\n\n"
-            "Include:\n"
-            "- document_type\n"
-            "- document_number\n"
-            "- document_date\n"
-            "- vendor_name\n"
-            "- customer_name\n"
-            "- currency\n"
-            "- subtotal\n"
-            "- tax_amount\n"
-            "- total_amount\n\n"
-            "Add additional fields whenever available.\n\n"
-            "CRITICAL: Keep your reasoning/thinking path (inside <think>...) extremely brief and concise, under 15 words. Get straight to the JSON output."
+            "CRITICAL RULES FOR JSON OUTPUT:\n"
+            "1. Your response MUST be a valid JSON object containing exactly the following keys, with NO extra keys and NO missing keys:\n"
+            "   {\n"
+            "     \"document_type\": <string or null>,\n"
+            "     \"document_number\": <string or null>,\n"
+            "     \"document_date\": <string (YYYY-MM-DD) or null>,\n"
+            "     \"vendor_name\": <string or null>,\n"
+            "     \"customer_name\": <string or null>,\n"
+            "     \"currency\": <string (3-letter) or null>,\n"
+            "     \"subtotal\": <number or null>,\n"
+            "     \"tax_amount\": <number or null>,\n"
+            "     \"total_amount\": <number or null>\n"
+            "   }\n"
+            "2. If you cannot extract a numeric value for subtotal, tax_amount, or total_amount, you MUST still output the key with a null value.\n\n"
+            "CRITICAL: Keep your reasoning/thinking path (inside <think>...) brief."
         )
 
         from urllib import error, request as urllib_request
@@ -498,13 +603,14 @@ class FieldExtractionService:
                 }
             ],
             "stream": False,
-            "format": "json",
-            "keep_alive": -1,
+            "keep_alive": 0,
             "options": {
                 "temperature": 0.1,
-                "num_predict": 4096,
+                "num_predict": 512,
             },
         }
+        if "deepseek" not in self.model.lower():
+            payload["format"] = "json"
 
         body = json.dumps(payload).encode("utf-8")
         chat_url = f"{self.ollama_url.rstrip('/')}/api/chat"
@@ -516,6 +622,15 @@ class FieldExtractionService:
             method="POST",
         )
 
+        import subprocess
+        LOGGER.info("Starting inference with model: %s", self.model)
+        try:
+            ps_out = subprocess.check_output(["ollama", "ps"]).decode().strip()
+            LOGGER.info("ollama ps during GPT-OSS inference start:\n%s", ps_out)
+        except Exception as e:
+            LOGGER.error("Failed to run ollama ps: %s", e)
+
+        inference_start = time.perf_counter()
         try:
             with urllib_request.urlopen(req, timeout=300) as response:
                 raw = response.read().decode("utf-8")
@@ -527,10 +642,16 @@ class FieldExtractionService:
                 extraction_time=0.0,
                 processing_time=0.0,
             )
+        inference_end = time.perf_counter()
+        inference_duration = inference_end - inference_start
+        LOGGER.info("Inference completed with model %s in %.2fs", self.model, inference_duration)
 
         try:
             api_response = json.loads(raw)
             raw_response = api_response.get("message", {}).get("content", "")
+            eval_count = api_response.get("eval_count", 0)
+            prompt_eval_count = api_response.get("prompt_eval_count", 0)
+            LOGGER.info("GPT-OSS - Prompt token count: %d, Completion token count: %d", prompt_eval_count, eval_count)
         except (json.JSONDecodeError, KeyError) as exc:
             LOGGER.error("Failed to parse Ollama extraction response: %s", exc)
             raw_response = ""
@@ -539,10 +660,11 @@ class FieldExtractionService:
         parsed_json = self._parse_json_response(raw_response) or {}
 
         # Apply document number cleaning/post-processing
-        if parsed_json and "document_number" in parsed_json:
+        if parsed_json is not None:
             parsed_json["document_number"] = _clean_document_number(
                 parsed_json.get("document_number"), ocr_text
             )
+            parsed_json = _clean_extracted_fields(parsed_json)
 
         extraction_time = time.perf_counter() - extraction_start
         LOGGER.info("Field extraction completed in %.2fs", extraction_time)
@@ -591,177 +713,39 @@ class FieldExtractionService:
 
 
 class ValidationService:
-    """Handles JSON validation using Qwen2.5:3B."""
+    """Handles JSON validation using pure Python DocumentValidator."""
 
     def __init__(self) -> None:
-        settings = get_settings()
-        self.ollama_url: str = settings.ollama_url
-        self.model: str = settings.ollama_validation_model
-        self._model_verified = False
+        self._model_verified = True
 
     def verify_model(self) -> bool:
-        """Check that Ollama is running and the required model is available."""
-        from urllib import error, request as urllib_request
-        import sys
-
-        tags_url = f"{self.ollama_url.rstrip('/')}/api/tags"
-        try:
-            req = urllib_request.Request(tags_url, method="GET")
-            with urllib_request.urlopen(req, timeout=5) as response:
-                data = json.loads(response.read().decode("utf-8"))
-        except Exception as exc:
-            msg = f"Ollama model '{self.model}' not running."
-            print(msg, file=sys.stderr)
-            LOGGER.error("Ollama is not reachable at %s — %s. %s", tags_url, exc, msg)
-            return False
-
-        models = data.get("models", [])
-        available_names = [m.get("name", "") for m in models]
-        for name in available_names:
-            if self.model in name or name.startswith(self.model.split(":")[0]):
-                LOGGER.info("✓ Ollama model '%s' verified (matched '%s')", self.model, name)
-                self._model_verified = True
-                return True
-
-        msg = f"Ollama model '{self.model}' not running."
-        print(msg, file=sys.stderr)
-        LOGGER.error("%s Model '%s' not found in Ollama. Available models: %s", msg, self.model, available_names)
-        return False
+        """Pure Python validation requires no model checks."""
+        return True
 
     def validate_json(self, extracted_json: dict[str, Any], document_type: str) -> ValidationResult:
-        """Validate extracted JSON using Qwen2.5:3B."""
-        LOGGER.info("JSON validation started using Qwen2.5:3B")
-
-        # Model verification happens once at startup
-
+        """Validate extracted JSON using pure Python rules."""
+        LOGGER.info("JSON validation started (pure Python)")
         validation_start = time.perf_counter()
-
-        prompt = (
-            "You are an expert Intelligent Document Processing validator.\n\n"
-            "Validate the following extracted JSON data for a document:\n\n"
-            "--- START JSON DATA ---\n"
-            f"{json.dumps(extracted_json, indent=2)}\n"
-            "--- END JSON DATA ---\n\n"
-            f"Document type: {document_type}\n\n"
-            "Please validate the extracted data:\n"
-            "1. Check if all required fields for the document type are present and valid\n"
-            "2. Check data formats (dates, amounts, etc.)\n"
-            "3. Identify any issues or inconsistencies\n"
-            "4. Provide a validation score (0.0 to 1.0)\n\n"
-            "Return ONLY valid JSON.\n"
-            "Do not explain.\n"
-            "Do not wrap with ```json.\n\n"
-            "JSON structure:\n"
-            "{\n"
-            "  \"is_valid\": boolean,\n"
-            "  \"issues\": [\"issue1\", \"issue2\"],\n"
-            "  \"score\": float,\n"
-            "  \"required_fields_missing\": [\"field1\", \"field2\"]\n"
-            "}\n"
-        )
-
-        from urllib import error, request as urllib_request
-
-        payload = {
-            "model": self.model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ],
-            "stream": False,
-            "format": "json",
-            "keep_alive": -1,
-            "options": {
-                "temperature": 0.1,
-                "num_predict": 2048,
-            },
-        }
-
-        body = json.dumps(payload).encode("utf-8")
-        chat_url = f"{self.ollama_url.rstrip('/')}/api/chat"
-
-        req = urllib_request.Request(
-            chat_url,
-            data=body,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-
-        try:
-            with urllib_request.urlopen(req, timeout=300) as response:
-                raw = response.read().decode("utf-8")
-        except error.URLError as exc:
-            LOGGER.error("Ollama validation request failed: %s", exc)
-            return ValidationResult(
-                is_valid=False,
-                issues=[f"Ollama validation request failed: {exc}"],
-                score=0.0,
-                required_fields_missing=[],
-                validation_time=0.0,
-                processing_time=0.0,
-            )
-
-        try:
-            api_response = json.loads(raw)
-            raw_response = api_response.get("message", {}).get("content", "")
-        except (json.JSONDecodeError, KeyError) as exc:
-            LOGGER.error("Failed to parse Ollama validation response: %s", exc)
-            raw_response = ""
-
-        # Parse validation response
-        parsed_result = self._parse_validation_response(raw_response)
-
+        
+        from services.validation import DocumentValidator, REQUIRED_FIELDS
+        validator = DocumentValidator()
+        result = validator.validate(document_type, extracted_json)
+        
+        # Calculate missing required fields
+        required_fields = REQUIRED_FIELDS.get(document_type, [])
+        missing = [f for f in required_fields if extracted_json.get(f) in (None, "", [])]
+        
         validation_time = time.perf_counter() - validation_start
-        LOGGER.info("JSON validation completed in %.2fs: valid=%s score=%.2f", validation_time, parsed_result.get("is_valid", False), parsed_result.get("score", 0.0))
-
+        LOGGER.info("JSON validation completed in %.6fs: valid=%s score=%.2f", validation_time, result.valid, result.score)
+        
         return ValidationResult(
-            is_valid=parsed_result.get("is_valid", False),
-            issues=parsed_result.get("issues", []),
-            score=parsed_result.get("score", 0.0),
-            required_fields_missing=parsed_result.get("required_fields_missing", []),
+            is_valid=result.valid,
+            issues=[f"{issue.field}: {issue.message}" for issue in result.issues],
+            score=result.score,
+            required_fields_missing=missing,
             validation_time=validation_time,
             processing_time=validation_time,
         )
-
-    def _parse_validation_response(self, text: str) -> dict[str, Any]:
-        """Parse validation response from Qwen2.5:3B."""
-        import re
-
-        # Strip think tags first
-        cleaned = text
-        if "<think>" in cleaned:
-            parts = cleaned.split("</think>", 1)
-            if len(parts) > 1:
-                cleaned = parts[1].strip()
-
-        # Strip markdown fences if the model ignored our instructions
-        cleaned = re.sub(r"```(?:json)?", "", cleaned).replace("```", "").strip()
-        try:
-            parsed = json.loads(cleaned)
-            if isinstance(parsed, dict):
-                return parsed
-        except json.JSONDecodeError:
-            pass
-
-        # Fallback: find the first {...} block
-        match = re.search(r"\{.*\}", cleaned, flags=re.DOTALL)
-        if match:
-            try:
-                parsed = json.loads(match.group(0))
-                if isinstance(parsed, dict):
-                    return parsed
-            except json.JSONDecodeError:
-                pass
-
-        # Default fallback
-        return {
-            "is_valid": False,
-            "issues": ["Failed to parse validation response"],
-            "score": 0.0,
-            "required_fields_missing": [],
-        }
 
 
 # ---------------------------------------------------------------------------
@@ -782,50 +766,36 @@ class ConfidenceCalculationService:
         confidence_start = time.perf_counter()
 
         # Core fields checklist for robust confidence scoring
-        core_fields = [
-            "document_type",
-            "document_number",
-            "document_date",
-            "vendor_name",
-            "customer_name",
-            "currency",
-            "subtotal",
-            "tax_amount",
-            "total_amount"
-        ]
+        # Calculate confidence using user-specified weights
+        weights = {
+            "document_number": 0.20,
+            "document_date": 0.15,
+            "vendor_name": 0.15,
+            "currency": 0.10,
+            "subtotal": 0.15,
+            "tax_amount": 0.10,
+            "total_amount": 0.15,
+        }
 
-        # Calculate field completeness based on the 9 core fields
-        present_count = 0
-        for field in core_fields:
+        base_score = 0.0
+        for field, weight in weights.items():
             val = extracted_json.get(field)
             if val not in (None, "", [], {}):
-                present_count += 1
-        
-        completeness = present_count / len(core_fields)
+                base_score += weight
 
-        # Validation indicators
+        # Apply a penalty based on validation issues, max 30% deduction
         issues = validation_result.get("issues", [])
-        validation_score = validation_result.get("score", 1.0)
-        if validation_score is None:
-            validation_score = 1.0
-
-        # Base score from completeness maps [0, 1] to [0.5, 0.95]
-        base_score = 0.5 + (completeness * 0.45)
+        issue_deduction = min(len(issues) * 0.05, 0.30)
         
-        # Adjust by validation score (70% weight to validation score)
-        score = base_score * (0.3 + 0.7 * validation_score)
-
-        # Dynamic deduction for parsing issues
-        issue_deduction = min(len(issues) * 0.05, 0.3)
-        score -= issue_deduction
+        score = base_score - issue_deduction
 
         # Calculate final confidence rounded to 2 decimal places
         confidence = round(max(0.0, min(1.0, score)), 2)
 
         confidence_time = time.perf_counter() - confidence_start
         LOGGER.info(
-            "Confidence calculation completed in %.2fs: confidence=%.2f | completeness=%.2f validation_score=%.2f issues_count=%d",
-            confidence_time, confidence, completeness, validation_score, len(issues)
+            "Confidence calculation completed in %.2fs: confidence=%.2f | issues_count=%d",
+            confidence_time, confidence, len(issues)
         )
 
         return ConfidenceResult(
@@ -852,7 +822,6 @@ class MultiModelOrchestrator:
     
     def ensure_initialized(self) -> None:
         """Ensure all services are initialized once at startup."""
-        self.ocr_service.ensure_initialized()
         # Ollama models are verified in their respective verify_model() methods
         # which are called during startup in backend/main.py
 
@@ -862,20 +831,24 @@ class MultiModelOrchestrator:
         LOGGER.info("Multi-model processing started for %s", file_path.name)
 
         # Stage 1: OCR
+        LOGGER.info("OCR started")
         ocr_start = time.perf_counter()
         ocr_result = self.ocr_service.extract_text(file_path)
         ocr_time = time.perf_counter() - ocr_start
+        LOGGER.info("OCR completed")
 
         # DEBUG: Verify OCR text before sending to DeepSeek
         LOGGER.info("OCR Text Length: %d", len(ocr_result.ocr_text))
         LOGGER.info("First 500 characters of OCR text:\n%s", ocr_result.ocr_text[:500])
 
         # Stage 2: Classification
+        LOGGER.info("Classification started")
         classification_start = time.perf_counter()
         classification_result = self.classification_service.classify(ocr_result.ocr_text)
         classification_time = time.perf_counter() - classification_start
 
         # Stage 3: Field Extraction
+        LOGGER.info("Extraction started")
         extraction_start = time.perf_counter()
         extraction_result = self.extraction_service.extract_fields(ocr_result.ocr_text, classification_result.document_type)
         extraction_time = time.perf_counter() - extraction_start

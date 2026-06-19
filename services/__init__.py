@@ -7,6 +7,7 @@ __all__ = [
     "DocumentValidator",
     "ExportService",
     "PaddleDeepSeekExtractor",
+    "PaddleQwenExtractor",
     "DocumentWorkflow",
 ]
 
@@ -14,6 +15,7 @@ _EXPORTS = {
     "DocumentValidator": ("services.validation", "DocumentValidator"),
     "ExportService": ("services.export_service", "ExportService"),
     "PaddleDeepSeekExtractor": ("services.paddle_deepseek", "PaddleDeepSeekExtractor"),
+    "PaddleQwenExtractor": ("services.paddle_qwen", "PaddleQwenExtractor"),
     "DocumentWorkflow": ("services.workflow", "DocumentWorkflow"),
 }
 

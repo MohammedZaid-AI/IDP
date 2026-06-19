@@ -1,0 +1,10 @@
+{
+  "total_invoices_processed": 14,
+  "average_ocr_latency": 35.432,
+  "average_total_latency": 40.9856,
+  "percentage_with_subtotal_populated": 100.0,
+  "percentage_with_tax_populated": 100.0,
+  "percentage_with_total_populated": 100.0,
+  "percentage_with_invoice_number_populated": 100.0,
+  "percentage_with_vendor_populated": 100.0
+}

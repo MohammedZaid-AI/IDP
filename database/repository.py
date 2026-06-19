@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -21,6 +22,9 @@ def get_session() -> Session:
         yield session
     finally:
         session.close()
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 def _json_payload(value: Any) -> str:
@@ -51,8 +55,6 @@ def seed_demo_data() -> Session:
                     }
                 ),
                 confidence=0.93,
-            status="Approved",
-                processing_time=2.8,
             )
             session.add(demo_document)
             session.flush()

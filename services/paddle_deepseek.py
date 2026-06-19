@@ -20,6 +20,7 @@ import numpy as np
 from PIL import Image
 
 from services.settings import get_settings
+from services.multi_model import _clean_extracted_fields
 
 LOGGER = logging.getLogger(__name__)
 
@@ -240,6 +241,14 @@ class PaddleDeepSeekExtractor:
         if not self._model_verified:
             self.verify_model()
         self._init_ocr()
+        try:
+            LOGGER.info("Warming up PaddleOCR engine...")
+            import numpy as np
+            dummy_img = np.zeros((100, 100, 3), dtype=np.uint8)
+            self._ocr_engine.ocr(dummy_img)
+            LOGGER.info("PaddleOCR engine warmed up successfully.")
+        except Exception as exc:
+            LOGGER.error("Failed to warm up PaddleOCR engine: %s", exc)
 
     def extract(self, file_path: str | Path) -> ExtractionResult:
         """Run PaddleOCR followed by local DeepSeek-R1:8B extraction."""
@@ -309,14 +318,24 @@ class PaddleDeepSeekExtractor:
                 if numeric_match:
                     parsed_json["document_number"] = numeric_match.group(1)
 
+        # Apply strict validation
+        parsed_json = _clean_extracted_fields(parsed_json)
+
         # Confidence heuristic based on field completeness
-        non_null_fields = sum(1 for v in parsed_json.values() if v is not None and v != "")
+        non_null_fields = sum(1 for k, v in parsed_json.items() if k != "_confidences" and v not in (None, "", [], {}))
         if non_null_fields >= 4:
             confidence = 0.95
         elif non_null_fields >= 2:
             confidence = 0.82
         else:
             confidence = 0.58
+
+        critical_fields = ["document_number", "document_date", "total_amount"]
+        missing_critical = sum(1 for f in critical_fields if parsed_json.get(f) in (None, "", [], {}))
+        if missing_critical > 0:
+            confidence -= (missing_critical * 0.15)
+            
+        confidence = max(0.0, min(1.0, confidence))
 
         total_time = ocr_time + llm_time
         LOGGER.info(

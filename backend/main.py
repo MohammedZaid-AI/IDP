@@ -106,18 +106,20 @@ def create_app() -> FastAPI:
 
     # Initialize all models once at startup
     from services.multi_model import orchestrator
-    from services.paddle_deepseek import PaddleDeepSeekExtractor
+    from services.workflow import workflow
     # Ensure all services are initialized once
     orchestrator.ensure_initialized()
-    # Ensure DeepSeek-R1 model is initialized once
-    deepseek_extractor = PaddleDeepSeekExtractor()
-    deepseek_extractor.ensure_initialized()
+    # Ensure DeepSeek-R1 and Qwen model extractors inside the workflow are initialized once
+    workflow._paddle_deepseek_extractor.ensure_initialized()
+    workflow._paddle_qwen_extractor.ensure_initialized()
     # Verify Ollama models are available
     classification_ok = orchestrator.classification_service.verify_model()
     extraction_ok = orchestrator.extraction_service.verify_model()
     validation_ok = orchestrator.validation_service.verify_model()
+    paddle_qwen_ok = workflow._paddle_qwen_extractor.verify_model()
+    paddle_deepseek_ok = workflow._paddle_deepseek_extractor.verify_model()
     
-    if all([classification_ok, extraction_ok, validation_ok]):
+    if all([classification_ok, extraction_ok, validation_ok, paddle_qwen_ok, paddle_deepseek_ok]):
         LOGGER.info("✓ All Ollama models verified successfully")
     else:
         LOGGER.error("✗ Some Ollama models failed verification")
@@ -126,4 +128,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-

@@ -1,0 +1,22 @@
+{
+  "model": "hf.co/mradermacher/Qari-OCR-0.2.2.1-VL-2B-Instruct-merged-GGUF:Q4_K_M",
+  "messages": [
+    {
+      "role": "user",
+      "content": "transcribe",
+      "images": [
+        {
+          "attached": "YES",
+          "base64_length": 1521176,
+          "first_100": "iVBORw0KGgoAAAANSUhEUgAAAvwAAAQACAIAAAASuhqAAAEAAElEQVR4nJz9Cbgd1XUmDNdcZ7izruZZAoHEIJAAAcYT2EzGUxLb",
+          "last_100": "81fI7iHJGe4E7RHDgaF74MEH0jxt2madr1+/9bqr8JScwcaJUm3blkVx2O1sgLzf7e7evfj/ApdG1m8xFdJvAAAAAElFTkSuQmCC"
+        }
+      ]
+    }
+  ],
+  "stream": false,
+  "options": {
+    "temperature": 0.0,
+    "num_predict": 850
+  }
+}

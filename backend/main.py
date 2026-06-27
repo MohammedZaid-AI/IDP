@@ -104,26 +104,25 @@ def create_app() -> FastAPI:
     app.include_router(pages_router)
     app.include_router(api_router)
 
-    # Initialize all models once at startup
-    from services.multi_model import orchestrator
+    # Initialize active models once at startup
     from services.workflow import workflow
-    # Ensure all services are initialized once
-    orchestrator.ensure_initialized()
-    # Ensure DeepSeek-R1 and Qwen model extractors inside the workflow are initialized once
-    workflow._paddle_deepseek_extractor.ensure_initialized()
-    workflow._paddle_qwen_extractor.ensure_initialized()
-    # Verify Ollama models are available
-    classification_ok = orchestrator.classification_service.verify_model()
-    extraction_ok = orchestrator.extraction_service.verify_model()
-    validation_ok = orchestrator.validation_service.verify_model()
-    paddle_qwen_ok = workflow._paddle_qwen_extractor.verify_model()
-    paddle_deepseek_ok = workflow._paddle_deepseek_extractor.verify_model()
+    from services.settings import get_settings
+    active_engine = os.environ.get("EXTRACTION_ENGINE", get_settings().extraction_engine)
+    LOGGER.info("Active extraction engine configured: %s", active_engine)
     
-    if all([classification_ok, extraction_ok, validation_ok, paddle_qwen_ok, paddle_deepseek_ok]):
-        LOGGER.info("✓ All Ollama models verified successfully")
-    else:
-        LOGGER.error("✗ Some Ollama models failed verification")
-    
+    try:
+        if active_engine == "qwen_llm":
+            if not hasattr(workflow, "_qwen_llm_extractor"):
+                from services.qwen_llm_extractor import QwenLlmExtractionService
+                workflow._qwen_llm_extractor = QwenLlmExtractionService()
+            workflow._qwen_llm_extractor.ensure_initialized()
+            LOGGER.info("✓ Production Qwen LLM model (Qari OCR and Local Qwen2.5-3B) initialized successfully.")
+        else:
+            workflow._hybrid_invoice_extractor.ensure_initialized()
+            LOGGER.info("✓ Production hybrid models (PaddleOCR, Qari OCR, and Local Qwen2.5-3B) initialized successfully.")
+    except Exception as exc:
+        LOGGER.error("✗ Failed to initialize production models at startup: %s", exc)
+
     return app
 
 

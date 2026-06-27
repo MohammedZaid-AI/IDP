@@ -32,3 +32,9 @@ google-auth-oauthlib
 
 # Server
 gunicorn
+rapidfuzz
+
+# HuggingFace Local Inference
+transformers
+accelerate
+huggingface_hub

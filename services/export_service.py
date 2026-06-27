@@ -39,7 +39,27 @@ class ExportService:
         target = export_dir / f"{filename}.xlsx"
         print(f"Documents processed: {len(records)}")
         print(records)
-        dataframe = self._dataframe_with_metadata_first(records)
+        
+        # Map raw keys to the exact 14 columns requested
+        mapped_records = []
+        for record in records:
+            mapped_records.append({
+                "Filename": record.get("filename", ""),
+                "Document Number": record.get("document_number") or "",
+                "VAT Number": record.get("vat_number") or "",
+                "Document Date": record.get("document_date") or "",
+                "Currency": record.get("currency") or "",
+                "Vendor Name Arabic": record.get("vendor_name_ar") or "",
+                "Vendor Name English": record.get("vendor_name_en") or "",
+                "Customer Name Arabic": record.get("customer_name_ar") or "",
+                "Customer Name English": record.get("customer_name_en") or "",
+                "Address Arabic": record.get("address_ar") or "",
+                "Address English": record.get("address_en") or "",
+                "Subtotal": record.get("subtotal"),
+                "Tax Amount": record.get("tax_amount"),
+                "Total Amount": record.get("total_amount"),
+            })
+        dataframe = pd.DataFrame(mapped_records)
 
         with pd.ExcelWriter(target, engine="openpyxl") as writer:
             dataframe.to_excel(writer, index=False, sheet_name="Sheet1")
@@ -66,9 +86,41 @@ class ExportService:
         LOGGER.info("Excel generated path: %s (exists=%s)", target.resolve(), target.exists())
         return target
 
-    @staticmethod
-    def _dataframe_with_metadata_first(records: list[dict[str, Any]]) -> pd.DataFrame:
-        dataframe = pd.DataFrame(records)
-        leading_columns = [column for column in ("filename", "document_type") if column in dataframe.columns]
-        remaining_columns = [column for column in dataframe.columns if column not in leading_columns]
-        return dataframe.reindex(columns=leading_columns + remaining_columns)
+
+
+class InvoiceExcelMapper:
+    COLUMNS = [
+        "document_number",
+        "vat_number",
+        "document_date",
+        "currency",
+        "vendor_name_ar",
+        "vendor_name_en",
+        "customer_name_ar",
+        "customer_name_en",
+        "address_ar",
+        "address_en",
+        "subtotal",
+        "tax_amount",
+        "total_amount",
+    ]
+
+    @classmethod
+    def to_row(cls, payload: dict[str, Any]) -> dict[str, Any]:
+        legacy_vendor = payload.get("vendor_name")
+        legacy_customer = payload.get("customer_name")
+        return {
+            "document_number": payload.get("document_number"),
+            "vat_number": payload.get("vat_number"),
+            "document_date": payload.get("document_date"),
+            "currency": payload.get("currency"),
+            "vendor_name_ar": payload.get("vendor_name_ar", ""),
+            "vendor_name_en": payload.get("vendor_name_en", legacy_vendor),
+            "customer_name_ar": payload.get("customer_name_ar", ""),
+            "customer_name_en": payload.get("customer_name_en", legacy_customer),
+            "address_ar": payload.get("address_ar", ""),
+            "address_en": payload.get("address_en", ""),
+            "subtotal": payload.get("subtotal"),
+            "tax_amount": payload.get("tax_amount"),
+            "total_amount": payload.get("total_amount"),
+        }

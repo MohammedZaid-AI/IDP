@@ -16,6 +16,7 @@ class AppSettings:
     ollama_model: str = os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b")
     ollama_classification_model: str = os.getenv("OLLAMA_CLASSIFICATION_MODEL", "qwen2.5-cpu:0.5b")
     ollama_validation_model: str = os.getenv("OLLAMA_VALIDATION_MODEL", "qwen2.5vl-cpu:3b")
+    ollama_field_extraction_model: str = os.getenv("OLLAMA_FIELD_EXTRACTION_MODEL", "qwen2.5:3b")
     extraction_engine: str = os.getenv("EXTRACTION_ENGINE", "ocr")
 
 

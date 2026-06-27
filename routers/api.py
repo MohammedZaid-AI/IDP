@@ -22,7 +22,7 @@ from database.repository import (
     get_document_detail,
     list_documents,
 )
-from services.export_service import ExportService
+from services.export_service import ExportService, InvoiceExcelMapper
 from services.file_service import FileService
 from services.workflow import workflow
 
@@ -199,8 +199,10 @@ async def upload_documents(request: Request) -> JSONResponse:
 
         LOGGER.info("Upload request completed")
         LOGGER.info("Response returned")
+        is_qwen_available = workflow._hybrid_invoice_extractor.ollama_extractor.is_available
+        msg = "Documents processed" if is_qwen_available else "Documents processed. Arabic extractor is unavailable."
         return JSONResponse({
-            "message": "Documents processed",
+            "message": msg,
             "results": results,
             "excel_url": excel_url,
             "excel_filename": f"{export_filename}.xlsx",
@@ -224,9 +226,9 @@ def _combined_export_record(filename: str, document_type: str, extracted_json: d
         "filename": filename,
         "document_type": document_type,
     }
+    row.update(InvoiceExcelMapper.to_row(extracted_json))
     row.update(_flatten_for_excel(extracted_json))
     return row
-
 
 def _flatten_for_excel(value: Any, prefix: str = "") -> dict[str, Any]:
     if not isinstance(value, dict):
@@ -271,7 +273,7 @@ def download_temp_file(request: Request) -> FileResponse:
     download_name = "invoice.xlsx" if safe_name.startswith("invoice") else "combined_export.xlsx"
     LOGGER.info("[download-temp] serving %s as %r", target_path, download_name)
     return FileResponse(
-        str(target_path),          # absolute path — no CWD ambiguity
+        str(target_path),          # absolute path - no CWD ambiguity
         filename=download_name,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )

@@ -3,7 +3,7 @@ from pathlib import Path
 from services.workflow import workflow
 
 def test_bahra_invoice_extraction():
-    file_path = Path(os.path.join(os.getcwd(), "uploads", "1_BAHRA-CABLES-60129398_127fa610fe34.png"))
+    file_path = Path(os.path.join(os.getcwd(), "uploads", "1_BAHRA-CABLES-60129398.png"))
     
     result = workflow.process_file(file_path)
     extracted = result.json_output
@@ -15,7 +15,7 @@ def test_bahra_invoice_extraction():
         assert extracted.get("tax_amount") > 0
 
 def test_bahri_invoice_extraction():
-    file_path = Path(os.path.join(os.getcwd(), "uploads", "1_BAHRI-BOLLORE-JED301286_068e2d2a880a.png"))
+    file_path = Path(os.path.join(os.getcwd(), "uploads", "1_BAHRI-BOLLORE-JED301286.png"))
     
     result = workflow.process_file(file_path)
     extracted = result.json_output
@@ -24,7 +24,7 @@ def test_bahri_invoice_extraction():
     assert extracted.get("total_amount") is not None
 
 def test_cps_invoice_extraction():
-    file_path = Path(os.path.join(os.getcwd(), "uploads", "1_CPS-CONSTRUCTION-PLANT-490_117a62149c7d.png"))
+    file_path = Path(os.path.join(os.getcwd(), "uploads", "1_CPS-CONSTRUCTION-PLANT-490.png"))
     
     result = workflow.process_file(file_path)
     extracted = result.json_output

@@ -10,7 +10,7 @@ from typing import Any, TypedDict
 from database.db import SessionLocal
 from database.repository import save_processed_document
 from schemas.documents import ProcessingResult
-from services.merge_extractor import HybridInvoiceExtractionService
+from services.qwen_llm_extractor import QwenLlmExtractionService
 
 LOGGER = logging.getLogger(__name__)
 
@@ -41,14 +41,14 @@ def get_workflow_session():
         session.close()
 
 class MultiModelDocumentWorkflow:
-    """Orchestrates document processing using PaddleOCR, Qari OCR, and local Ollama."""
+    """Orchestrates document processing using Qari OCR and local Ollama Qwen2.5-3B."""
 
     def __init__(self) -> None:
-        self._hybrid_invoice_extractor = HybridInvoiceExtractionService()
+        self._qwen_llm_extractor = QwenLlmExtractionService()
 
     def process_file(self, file_path: str | Path, original_filename: str | None = None) -> ProcessingResult:
         original_filename = original_filename or Path(file_path).name
-        LOGGER.info("Multi-model workflow started for %s", original_filename)
+        LOGGER.info("Simplified Qwen LLM workflow started for %s", original_filename)
 
         state: WorkflowState = {
             "file_path": str(file_path),
@@ -72,8 +72,8 @@ class MultiModelDocumentWorkflow:
 
         # Print latency as requested by user
         print(f"OCR latency: {timings.get('ocr_time', 0.0):.4f}s", flush=True)
-        print(f"Ollama latency: {timings.get('extraction_time', 0.0):.4f}s", flush=True)
-        print(f"Merge latency: {timings.get('validation_time', 0.0):.4f}s", flush=True)
+        print(f"Extraction latency: {timings.get('extraction_time', 0.0):.4f}s", flush=True)
+        print(f"Validation latency: {timings.get('validation_time', 0.0):.4f}s", flush=True)
         print(f"Total latency: {elapsed:.4f}s", flush=True)
 
         # Print final JSON
@@ -87,7 +87,7 @@ class MultiModelDocumentWorkflow:
             document_type=state.get("document_type", "invoice"),
             status=state.get("status", "pending_review"),
             confidence=float(state.get("confidence", 0.0)),
-            extraction_engine=state.get("extraction_engine", "ollama"),
+            extraction_engine=state.get("extraction_engine", "qwen_llm"),
             validation=validation_payload,
             json_output=state.get("json_output", {}),
             raw_text=state.get("raw_text", ""),
@@ -99,21 +99,9 @@ class MultiModelDocumentWorkflow:
         )
 
     def _process_node(self, state: WorkflowState) -> WorkflowState:
-        from services.settings import get_settings
-        import os
-        active_engine = os.environ.get("EXTRACTION_ENGINE", get_settings().extraction_engine)
-
-        if active_engine == "qwen_llm":
-            if not hasattr(self, "_qwen_llm_extractor"):
-                from services.qwen_llm_extractor import QwenLlmExtractionService
-                self._qwen_llm_extractor = QwenLlmExtractionService()
-            self._qwen_llm_extractor.ensure_initialized()
-            ext_result = self._qwen_llm_extractor.extract(state["file_path"])
-            engine_name = "qwen_llm"
-        else:
-            self._hybrid_invoice_extractor.ensure_initialized()
-            ext_result = self._hybrid_invoice_extractor.extract(state["file_path"])
-            engine_name = "ollama"
+        self._qwen_llm_extractor.ensure_initialized()
+        ext_result = self._qwen_llm_extractor.extract(state["file_path"])
+        engine_name = "qwen_llm"
 
         timings = {
             "ocr_time": ext_result.ocr_time,
@@ -164,7 +152,7 @@ class MultiModelDocumentWorkflow:
                 raw_text=state.get("raw_text", ""),
                 raw_llm_response=state.get("raw_llm_response", ""),
                 validation_result=state.get("validation", {}),
-                engine=state.get("extraction_engine", "ollama"),
+                engine=state.get("extraction_engine", "qwen_llm"),
                 processing_timings=timings,
             )
             state["document_id"] = document.id

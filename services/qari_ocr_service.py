@@ -26,181 +26,21 @@ from services.settings import get_settings
 LOGGER = logging.getLogger(__name__)
 
 
-def has_letters(block: list[str]) -> bool:
-    for token in block:
-        if any(c.isalpha() for c in token):
-            return True
-    return False
-
-
-def deduplicate_tokens(text: str) -> str:
-    if not text:
-        return ""
-    # Find all words/tokens, including newlines
-    tokens = re.findall(r"\S+|\n", text)    
-    if not tokens:
-        return ""
-    
-    result = []
-    norm_result = []  # lowercase and digits replaced with '#'
-    
-    for token in tokens:
-        result.append(token)
-        # Create normalized token   
-        norm_t = token.lower()
-        norm_t = re.sub(r"\d+", "#", norm_t)
-        norm_result.append(norm_t)
-        
-        # Check for repeating patterns of size k up to 20
-        for k in range(1, 21):
-            if len(result) >= 3 * k:
-                # Compare the last 3 chunks of size k
-                chunk1 = norm_result[-k:]
-                chunk2 = norm_result[-2*k:-k]
-                chunk3 = norm_result[-3*k:-2*k]
-                
-                # Check if the chunk contains letters
-                if has_letters(chunk1) and chunk1 == chunk2 == chunk3:
-                    del result[-2*k:]
-                    del norm_result[-2*k:]
-                    break
-                    
-    # Reassemble text from tokens, keeping newlines formatting
-    lines = []
-    current_line = []
-    for t in result:
-        if t == "\n":
-            lines.append(" ".join(current_line))
-            current_line = []
-        else:
-            current_line.append(t)
-    if current_line:
-        lines.append(" ".join(current_line))
-    return "\n".join(lines)
-
-
-def truncate_on_loop(text: str) -> str:
+def clean_ocr(text: str) -> str:
     if not text:
         return ""
     lines = text.splitlines()
-    n = len(lines)
-    
-    # 1. Check for block repetitions (size k >= 1) repeating 3 times consecutively
-    for k in range(1, 25):
-        if 3 * k > n:
-            break
-        for i in range(n - 3 * k + 1):
-            block1 = lines[i : i + k]
-            block2 = lines[i + k : i + 2 * k]
-            block3 = lines[i + 2 * k : i + 3 * k]
-            
-            block_content = "".join(block1).strip()
-            if len(block_content) > 3:
-                norm1 = [re.sub(r'\s+', '', l.lower()) for l in block1]
-                norm2 = [re.sub(r'\s+', '', l.lower()) for l in block2]
-                norm3 = [re.sub(r'\s+', '', l.lower()) for l in block3]
-                
-                if norm1 == norm2 == norm3:
-                    LOGGER.info(f"Loop detected (3x) at line {i} with block size {k}. Truncating.")
-                    print(f"Loop detected (3x) at line {i} with block size {k}. Truncating.", flush=True)
-                    return "\n".join(lines[:i + k])
-
-    # 2. Check for larger block repetitions (size k >= 2) repeating 2 times consecutively
-    for k in range(2, 25):
-        if 2 * k > n:
-            break
-        for i in range(n - 2 * k + 1):
-            block1 = lines[i : i + k]
-            block2 = lines[i + k : i + 2 * k]
-            
-            block_content = "".join(block1).strip()
-            if len(block_content) > 15:
-                norm1 = [re.sub(r'\s+', '', l.lower()) for l in block1]
-                norm2 = [re.sub(r'\s+', '', l.lower()) for l in block2]
-                
-                if norm1 == norm2:
-                    LOGGER.info(f"Loop detected (2x) at line {i} with block size {k}. Truncating.")
-                    print(f"Loop detected (2x) at line {i} with block size {k}. Truncating.", flush=True)
-                    return "\n".join(lines[:i + k])
-                    
-    # 3. Check for single line repeating 2 times consecutively if it's long and identical
-    for i in range(n - 1):
-        l1 = re.sub(r'\s+', '', lines[i].lower())
-        l2 = re.sub(r'\s+', '', lines[i+1].lower())
-        if l1 == l2 and len(l1) > 25:
-            LOGGER.info(f"Single line loop detected (2x) at line {i}. Truncating.")
-            print(f"Single line loop detected (2x) at line {i}. Truncating.", flush=True)
-            return "\n".join(lines[:i + 1])
-            
-    return text
-
-
-def deduplicate_paragraphs(text: str) -> tuple[str, int]:
-    raw_paragraphs = re.split(r'\n\s*\n', text)
-    
-    unique_paragraphs = []
-    seen_normalized = set()
-    removed_count = 0
-    
-    for p in raw_paragraphs:
-        p_strip = p.strip()
-        if not p_strip:
-            continue
-        norm_p = re.sub(r'\s+', '', p_strip.lower())
-        if norm_p in seen_normalized:
-            removed_count += 1
-            continue
-        seen_normalized.add(norm_p)
-        unique_paragraphs.append(p_strip)
-        
-    return "\n\n".join(unique_paragraphs), removed_count
-
-
-def clean_ocr(text: str) -> tuple[str, int, int]:
-    raw_len = len(text)
-    
-    # 1. Truncate loop
-    truncated = truncate_on_loop(text)
-    
-    # 2. Token-level deduplication
-    deduplicated = deduplicate_tokens(truncated)
-    
-    # 3. Paragraph-level deduplication
-    deduped_paras, dup_paras_removed = deduplicate_paragraphs(deduplicated)
-    
-    # 4. Line by line clean
     cleaned_lines = []
     prev_line = None
-    
-    for line in deduped_paras.splitlines():
+    for line in lines:
         # Collapse multiple horizontal whitespaces
         cleaned_line = re.sub(r'[ \t\xa0\u2000-\u200a\u202f\u205f\u3000]+', ' ', line).strip()
-        
-        # Remove consecutive duplicate lines
+        # Remove exact duplicate consecutive lines
         if prev_line is not None and cleaned_line == prev_line:
             continue
-            
-        # Collapse word-level repetitions within the line
-        words = cleaned_line.split()
-        if len(words) > 3:
-            if len(set(words)) == 1:
-                cleaned_line = words[0]
-            else:
-                new_words = []
-                for w in words:
-                    if not new_words or w != new_words[-1]:
-                        new_words.append(w)
-                cleaned_line = " ".join(new_words)
-                
-        if cleaned_line == "" and prev_line == "":
-            continue
-            
         cleaned_lines.append(cleaned_line)
         prev_line = cleaned_line
-        
-    cleaned_text = "\n".join(cleaned_lines).strip()
-    chars_removed = raw_len - len(cleaned_text)
-    return cleaned_text, dup_paras_removed, chars_removed
+    return "\n".join(cleaned_lines).strip()
 
 
 class QariOCRService:
@@ -330,15 +170,14 @@ class QariOCRService:
                     content = parsed_json.get("message", {}).get("content", "").strip()
                     
                     # Clean the OCR output
-                    cleaned_content, dup_paras_removed, chars_removed = clean_ocr(content)
+                    cleaned_content = clean_ocr(content)
                     
                     # Print debug logging as required
                     raw_len = len(content)
                     cleaned_len = len(cleaned_content)
                     print(f"Raw OCR length: {raw_len} characters")
                     print(f"Cleaned OCR length: {cleaned_len} characters")
-                    print(f"Characters removed: {chars_removed}")
-                    print(f"Number of duplicate paragraphs removed: {dup_paras_removed}")
+                    print(f"Characters removed: {raw_len - cleaned_len}")
                     
                     # Save raw_ocr.txt and cleaned_ocr.txt
                     try:

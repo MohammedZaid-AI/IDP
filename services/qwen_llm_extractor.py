@@ -9,22 +9,9 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-from PIL import Image
-from rapidfuzz import fuzz
 
 from services.settings import get_settings
 from services.qari_ocr_service import QariOCRService
-from services.ollama_extractor import deduplicate_tokens, clean_metadata_value
-from services.merge_extractor import (
-    count_chars_by_language,
-    detect_field_language,
-    is_invalid_customer_name,
-    validate_field_value,
-    recover_company_name,
-    recover_address,
-    find_arabic_company_name,
-    find_english_company_name
-)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -44,21 +31,6 @@ FINAL_COLUMNS = [
     "total_amount",
 ]
 
-FIELD_WEIGHTS = {
-    "document_number": 0.15,
-    "vat_number": 0.15,
-    "document_date": 0.10,
-    "currency": 0.05,
-    "vendor_name_ar": 0.10,
-    "vendor_name_en": 0.10,
-    "customer_name_ar": 0.08,
-    "customer_name_en": 0.08,
-    "address_ar": 0.06,
-    "address_en": 0.06,
-    "subtotal": 0.04,
-    "tax_amount": 0.04,
-    "total_amount": 0.04,
-}
 
 @dataclass
 class QwenLlmExtractionResult:
@@ -76,51 +48,77 @@ class QwenLlmExtractionResult:
     processing_time: float
 
 
-def detect_repetition_loop(text: str) -> bool:
+def normalize_for_check(text: str) -> str:
     if not text:
-        return False
-    # Clean text and split into tokens of alphanumeric characters,
-    # treating hyphens/punctuation as word boundaries.
-    tokens = re.findall(r'[a-zA-Z0-9\u0600-\u06FF]+', text.lower())
-    if not tokens:
-        return False
-    
-    n = len(tokens)
-    # Check for consecutive repetition of sub-sequences of size k
-    # k can be from 1 up to 30 words
-    for k in range(1, 31):
-        if k * 3 > n:
-            break
-        # Slide through the tokens
-        for i in range(n - 3 * k + 1):
-            seq1 = tokens[i : i + k]
-            seq2 = tokens[i + k : i + 2 * k]
-            seq3 = tokens[i + 2 * k : i + 3 * k]
-            if seq1 == seq2 == seq3:
-                if k == 1:
-                    # check if 4th one also matches
-                    if i + 4 * k <= n and tokens[i + 3 * k : i + 4 * k] == seq1:
-                        return True
-                else:
-                    return True
-                    
-    # Also check for character-level loops (e.g. a single character like '9' or 'الاسم' repeating without spaces)
-    # If a single non-space character is repeated 15+ times consecutively:
-    cleaned_chars = text.strip()
-    if re.search(r'([^0\s])\1{14,}', cleaned_chars):
-        return True
+        return ""
+    text = text.lower()
+    return re.sub(r'[\W_]+', '', text, flags=re.UNICODE)
 
+
+def amount_exists_in_ocr(val: float, ocr_text: str) -> bool:
+    clean_ocr = normalize_for_check(ocr_text)
+    clean_digits = re.sub(r'\D', '', f"{val:.2f}")
+    clean_digits_short = re.sub(r'\D', '', f"{val:.0f}")
+    return (clean_digits in clean_ocr) or (clean_digits_short in clean_ocr)
+
+
+def normalize_currency(val: Any) -> str:
+    if not val:
+        return ""
+    val_str = str(val).strip().lower()
+    if any(term in val_str for term in ("sar", "riy", "ريال", "ر.س", "sr")):
+        return "SAR"
+    return str(val).strip()
+
+
+def is_valid_date(date_str: str) -> bool:
+    if not date_str:
+        return False
+    for fmt in (
+        "%Y-%m-%d", "%d-%m-%Y", "%Y/%m/%d", "%d/%m/%Y", 
+        "%m/%d/%Y", "%Y.%m.%d", "%d.%m.%Y", "%Y-%m-%dT%H:%M:%S"
+    ):
+        try:
+            time.strptime(date_str, fmt)
+            return True
+        except ValueError:
+            pass
     return False
 
 
+def parse_float_amount(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        val_str = str(value).strip().replace(" ", "")
+        val_str = re.sub(r"(?i)[a-z]+", "", val_str)
+        val_str = val_str.replace("$", "").replace("€", "").replace("£", "").replace(",", "")
+        return float(val_str)
+    except ValueError:
+        return None
+
+
 class QwenLlmExtractionService:
-    """Qari OCR + Qwen 2.5 3B Extraction and Validation Pipeline with PaddleOCR Fallback."""
+    """Qari OCR + Qwen 2.5 3B Extraction and Validation Pipeline."""
 
     def __init__(self) -> None:
         settings = get_settings()
         self.url = settings.ollama_url.rstrip("/")
         self.model = "qwen2.5:3b"
         self.qari = QariOCRService()
+
+    @property
+    def is_available(self) -> bool:
+        try:
+            res = httpx.get(f"{self.url}/api/tags", timeout=3.0)
+            if res.status_code == 200:
+                models = res.json().get("models", [])
+                return any(m.get("name") == self.model or m.get("name", "").startswith(f"{self.model}:") for m in models)
+        except Exception:
+            pass
+        return False
 
     def ensure_initialized(self) -> None:
         self.qari.ensure_initialized()
@@ -139,20 +137,7 @@ class QwenLlmExtractionService:
         # 1. Run Qari OCR
         qari_start = time.perf_counter()
         qari_text = self.qari.extract_text(file_path)
-        qari_ocr_time = time.perf_counter() - qari_start
-
-        # Loop detection & Fallback to PaddleOCR
-        is_fallback = False
-        final_ocr_text = ""
-        
-        if not qari_text or detect_repetition_loop(qari_text):
-            LOGGER.warning("Repetition loop or empty text detected in Qari OCR output for %s. Falling back to PaddleOCR.", file_path.name)
-            fallback_start = time.perf_counter()
-            final_ocr_text = self._run_paddle_ocr(file_path)
-            qari_ocr_time += (time.perf_counter() - fallback_start)
-            is_fallback = True
-        else:
-            final_ocr_text = deduplicate_tokens(qari_text)
+        ocr_time = time.perf_counter() - qari_start
 
         # Count pages from PDF if applicable
         page_count = 1
@@ -166,12 +151,12 @@ class QwenLlmExtractionService:
 
         # 2. Run Qwen 2.5 3B structured JSON extraction
         llm_start = time.perf_counter()
-        llm_response = self._run_qwen_extraction(final_ocr_text)
+        extracted_json, llm_response_text, prompt = self._run_qwen_extraction(qari_text)
         llm_time = time.perf_counter() - llm_start
 
-        # 3. Perform Validation (Dates, Amounts, VAT, Math, Grounding & Confidence)
+        # 3. Perform Validation and Confidence Scoring
         val_start = time.perf_counter()
-        validated_json = self._validate_and_score(llm_response, final_ocr_text)
+        validated_json = self._validate_and_score(extracted_json, qari_text, llm_response_text, prompt, started)
         validation_time = time.perf_counter() - val_start
 
         processing_time = time.perf_counter() - started
@@ -179,84 +164,204 @@ class QwenLlmExtractionService:
         return QwenLlmExtractionResult(
             document_type="invoice",
             extracted_json=validated_json,
-            raw_response=json.dumps(llm_response, ensure_ascii=False, indent=2),
-            ocr_text=final_ocr_text,
+            raw_response=llm_response_text,
+            ocr_text=qari_text,
             qari_ocr_text=qari_text,
             confidence=validated_json.get("_confidence", 0.0),
             page_count=page_count,
-            ocr_time=qari_ocr_time,
-            qari_ocr_time=qari_ocr_time,
+            ocr_time=ocr_time,
+            qari_ocr_time=ocr_time,
             llm_time=llm_time,
             validation_time=validation_time,
             processing_time=processing_time,
         )
 
-    def _run_paddle_ocr(self, file_path: Path) -> str:
-        from services.paddle_ocr_service import PaddleOCRService
-        from services.merge_extractor import _render_pages
-        import numpy as np
-        
-        paddle_service = PaddleOCRService()
-        paddle_service.ensure_initialized()
-        paddle_service._init_ocr()
-        
-        pages = _render_pages(file_path)
-        page_texts = []
-        for index, page_img in enumerate(pages):
-            width, height = page_img.size
-            max_size = 800
-            if max(width, height) > max_size:
-                if width > height:
-                    new_width = max_size
-                    new_height = int(height * (max_size / width))
-                else:
-                    new_height = max_size
-                    new_width = int(width * (max_size / height))
-                page_img = page_img.resize((new_width, new_height), Image.Resampling.LANCZOS if hasattr(Image, "Resampling") else Image.LANCZOS)
-                
-            image_np = np.array(page_img.convert("RGB"))
-            result = paddle_service._ocr_engine.ocr(image_np)
-            lines = []
-            if result and result[0]:
-                rec_texts = result[0].get("rec_texts", [])
-                lines = [str(text) for text in rec_texts if text is not None]
-            page_texts.append("\n".join(lines))
-        return "\n\n--- PAGE BREAK ---\n\n".join(page_texts)
+    def _run_qwen_extraction(self, ocr_text: str) -> tuple[dict[str, Any], str, str]:
+        prompt = f"""You are a highly accurate invoice extraction engine.
 
-    def _run_qwen_extraction(self, ocr_text: str) -> dict[str, Any]:
-        prompt = (
-            "You are a bilingual invoice metadata extractor. Analyze the input OCR text and extract the values into the required JSON schema.\n\n"
-            "### RULES:\n"
-            "- Extract values exactly as they appear in the text.\n"
-            "- Extract vendor_name_ar and vendor_name_en independently. Populate both if both exist. Do not combine them.\n"
-            "- Extract customer_name_ar and customer_name_en independently. Populate both if both exist. Do not combine them.\n"
-            "- For vendor_name_en and customer_name_en, you MUST extract the official English names as they appear in the source text (especially top headers, e.g., 'ABC TRADING EST', 'XYZ LLC'). Do NOT translate the Arabic names into English (for example, do NOT translate 'مؤسسة الأمل' to 'HOPE FOUNDATION' or 'Hope'). If the official English name is not present, return \"\".\n"
-            "- vendor_name must be the company issuing the invoice. customer_name must be the buyer/client. Do NOT swap them.\n"
-            "- If customer_name is not clearly present, return \"\". Do NOT generate placeholders (e.g. 'Unnamed customer', 'the name').\n"
-            "- Copy addresses verbatim. Do NOT translate addresses. If only Arabic address exists, return \"\" for address_en.\n"
-            "- Never change names of cities (e.g., do not change 'الرياض' to 'مكة المكرمة').\n"
-            "- Extract subtotal, tax_amount, total_amount as numbers. If not present, return null.\n"
-            "- Output MUST be a valid JSON object matching the SCHEMA below. No markdown fences or explanations.\n\n"
-            "### SCHEMA:\n"
-            "{\n"
-            "  \"document_number\": \"\",\n"
-            "  \"vat_number\": \"\",\n"
-            "  \"document_date\": \"\",\n"
-            "  \"currency\": \"\",\n"
-            "  \"vendor_name_ar\": \"\",\n"
-            "  \"vendor_name_en\": \"\",\n"
-            "  \"customer_name_ar\": \"\",\n"
-            "  \"customer_name_en\": \"\",\n"
-            "  \"address_ar\": \"\",\n"
-            "  \"address_en\": \"\",\n"
-            "  \"subtotal\": null,\n"
-            "  \"tax_amount\": null,\n"
-            "  \"total_amount\": null\n"
-            "}\n\n"
-            f"### OCR TEXT:\n{ocr_text}"
-        )
+Your job is to extract structured information from OCR text.
+
+You MUST return ONLY valid JSON.
+Never explain.
+Never use markdown.
+Never include comments.
+Never include code blocks.
+Never return anything except the JSON object.
+
+GENERAL RULES:
+The OCR text may contain:
+- Arabic
+- English
+- Mixed Arabic and English
+- Tables
+- Product descriptions
+- Headers
+- Footers
+- Phone numbers
+- VAT numbers
+- CR numbers
+- PO numbers
+
+Your job is to identify ONLY the requested invoice entities.
+Never guess.
+If uncertain, return an empty string or null.
+
+VERY IMPORTANT:
+For every field, return ONLY the value.
+Never include labels.
+Never include neighbouring lines.
+Never include surrounding paragraphs.
+
+Example:
+OCR:
+Vendor Name
+ABC Trading Company
+PO Box 123
+
+Correct:
+"vendor_name_en": "ABC Trading Company"
+
+Wrong:
+"vendor_name_en": "Vendor Name\nABC Trading Company\nPO Box 123"
+
+DOCUMENT NUMBER:
+Choose ONLY the actual invoice number.
+Ignore:
+- Revenue Number
+- Customer Number
+- CR Number
+- PO Number
+- Delivery Number
+- Reference Number
+- Serial Number
+- Item Code
+- Product Code
+If the invoice number is empty on the document, return "".
+Never guess.
+
+VENDOR:
+Return ONLY the company name.
+Do NOT include:
+- Address
+- Phone
+- Fax
+- VAT
+- Email
+- Website
+- PO Box
+
+Correct: ABC Trading Company
+Wrong:
+ABC Trading Company
+PO Box 123
+Riyadh
+Saudi Arabia
+
+CUSTOMER:
+Return ONLY the customer name.
+Never include:
+- Address
+- PO Box
+- VAT
+- Reference
+- Invoice Number
+
+ADDRESS:
+Return ONLY the address.
+Do not include:
+- Vendor name
+- Customer name
+- Phone
+- Email
+- VAT
+- Invoice Number
+
+VAT NUMBER:
+Return ONLY the VAT registration number.
+Never return:
+- CR
+- PO
+- Invoice Number
+
+DATE:
+Return ONLY the invoice date.
+Prefer:
+- Invoice Date
+- Issue Date
+- Tax Invoice Date
+Do NOT use:
+- Delivery Date
+- Supply Date
+- Due Date
+unless the invoice date is missing.
+
+AMOUNTS:
+Extract ONLY:
+- subtotal
+- tax_amount
+- total_amount
+Ignore:
+- Unit Price
+- Quantity
+- Line Total
+- Product Total
+- Discount %
+
+LANGUAGE:
+If the text is Arabic, store it in the Arabic field.
+If the text is English, store it in the English field.
+Never translate.
+Never duplicate Arabic into English.
+Never duplicate English into Arabic.
+
+NEGATIVE EXAMPLES:
+
+Wrong vendor_name:
+ABC Trading
+PO Box 123
+Riyadh
+Correct vendor_name:
+ABC Trading
+
+Wrong document_number:
+Invoice Number
+PO Box 123
+Correct document_number:
+736
+
+Wrong address:
+ABC Trading
+PO Box
+VAT Number
+Phone
+Correct address:
+PO Box 123
+Riyadh
+Saudi Arabia
+
+OUTPUT FORMAT:
+Return EXACTLY a JSON object with this structure:
+{{
+    "document_number": "",
+    "vat_number": "",
+    "document_date": "",
+    "currency": "",
+    "vendor_name_ar": "",
+    "vendor_name_en": "",
+    "customer_name_ar": "",
+    "customer_name_en": "",
+    "address_ar": "",
+    "address_en": "",
+    "subtotal": null,
+    "tax_amount": null,
+    "total_amount": null
+}}
+
+OCR TEXT:
+{ocr_text}"""
 
         extracted_json = {field: ("" if "name" in field or "address" in field or field in ("document_number", "vat_number", "document_date", "currency") else None) for field in FINAL_COLUMNS}
+        raw_response = ""
 
         try:
             with httpx.Client(timeout=300.0) as client:
@@ -269,20 +374,18 @@ class QwenLlmExtractionService:
                         "format": "json",
                         "options": {
                             "temperature": 0.0,
-                            "top_p": 0.9,
-                            "seed": 42
                         }
                     }
                 )
                 if res.status_code == 200:
-                    raw_resp = res.json().get("response", "").strip()
-                    parsed = self._parse_json(raw_resp)
+                    raw_response = res.json().get("response", "").strip()
+                    parsed = self._parse_json(raw_response)
                     if parsed:
                         for key in extracted_json:
                             val = parsed.get(key)
                             if val is not None:
                                 if isinstance(val, str):
-                                    extracted_json[key] = clean_metadata_value(val.strip())
+                                    extracted_json[key] = val.strip()
                                 else:
                                     extracted_json[key] = val
                 else:
@@ -290,7 +393,7 @@ class QwenLlmExtractionService:
         except Exception as exc:
             LOGGER.error("Ollama Qwen 2.5 3B extraction failed: %s", exc)
 
-        return extracted_json
+        return extracted_json, raw_response, prompt
 
     def _parse_json(self, text: str) -> dict[str, Any] | None:
         cleaned = text.strip()
@@ -311,346 +414,160 @@ class QwenLlmExtractionService:
                 pass
         return None
 
-    def _normalize_text(self, val: Any) -> str:
-        text = str(val or "").strip().lower()
-        return re.sub(r"[\W_]+", "", text, flags=re.UNICODE)
-
-    def _validate_and_score(self, extracted: dict[str, Any], ocr_text: str) -> dict[str, Any] | None:
+    def _validate_and_score(
+        self, 
+        extracted: dict[str, Any], 
+        ocr_text: str, 
+        llm_response: str, 
+        prompt: str, 
+        started_time: float
+    ) -> dict[str, Any]:
         payload = {k: v for k, v in extracted.items()}
-        
-        # Relocate misplaced values based on language
-        for base in ("vendor_name", "customer_name", "address"):
-            ar_val = payload.get(f"{base}_ar")
-            en_val = payload.get(f"{base}_en")
-            if ar_val:
-                ar_ar_cnt, ar_en_cnt = count_chars_by_language(ar_val)
-                if ar_en_cnt > ar_ar_cnt and ar_en_cnt > 0:
-                    if not en_val:
-                        payload[f"{base}_en"] = ar_val
-                        payload[f"{base}_ar"] = ""
-                        LOGGER.info(f"Relocated mostly English value for {base} from Arabic to English field: '{ar_val}'")
-            # re-read after possible modification
-            ar_val = payload.get(f"{base}_ar")
-            en_val = payload.get(f"{base}_en")
-            if en_val:
-                en_ar_cnt, en_en_cnt = count_chars_by_language(en_val)
-                if en_ar_cnt > en_en_cnt and en_ar_cnt > 0:
-                    if not ar_val:
-                        payload[f"{base}_ar"] = en_val
-                        payload[f"{base}_en"] = ""
-                        LOGGER.info(f"Relocated mostly Arabic value for {base} from English to Arabic field: '{en_val}'")
+        issues = []
+        penalties = 0.0
 
-        # 1. Recover short company names
-        for field in ("vendor_name_ar", "vendor_name_en", "customer_name_ar", "customer_name_en"):
-            val = payload.get(field)
-            if val:
-                recovered_val = recover_company_name(val, ocr_text)
-                if recovered_val != val:
-                    LOGGER.info(f"Company name recovery for {field}: '{val}' -> '{recovered_val}'")
-                    print(f"Company name recovery for {field}: '{val}' -> '{recovered_val}'", flush=True)
-                    payload[field] = recovered_val
+        # Normalization (Currency)
+        if "currency" in payload and payload["currency"]:
+            normalized_curr = normalize_currency(payload["currency"])
+            payload["currency"] = normalized_curr
 
-        # 2. Recover incomplete addresses
-        for field in ("address_ar", "address_en"):
-            val = payload.get(field)
-            if val:
-                recovered_val = recover_address(val, ocr_text)
-                if recovered_val != val:
-                    LOGGER.info(f"Address recovery for {field}: '{val}' -> '{recovered_val}'")
-                    print(f"Address recovery for {field}: '{val}' -> '{recovered_val}'", flush=True)
-                    payload[field] = recovered_val
-
-        # 3. Validate languages, apply rejections and overrides
-        forced_confidences = {}
-        arabic_fields = ["vendor_name_ar", "vendor_name_en", "customer_name_ar", "customer_name_en", "address_ar", "address_en"]
-        
-        for field in arabic_fields:
-            val = payload.get(field)
-            if not val:
-                continue
-                
-            ar_cnt, en_cnt = count_chars_by_language(val)
-            det_lang = detect_field_language(val)
-            print(f"Detected language for field {field}: {det_lang} (Arabic: {ar_cnt}, English: {en_cnt})", flush=True)
-            LOGGER.info(f"Detected language for field {field}: {det_lang} (Arabic: {ar_cnt}, English: {en_cnt})")
-            
-            is_valid = True
-            reject_reason = ""
-            
-            if field == "vendor_name_ar":
-                if ar_cnt == 0 or (en_cnt > 0 and en_cnt > ar_cnt):
-                    is_valid = False
-                    reject_reason = "vendor_name_ar is mostly English"
-            elif field == "vendor_name_en":
-                if en_cnt == 0 or (ar_cnt > 0 and ar_cnt > en_cnt):
-                    is_valid = False
-                    reject_reason = "vendor_name_en is mostly Arabic"
-            elif field == "address_ar":
-                if ar_cnt == 0 or (en_cnt > 0 and en_cnt > ar_cnt):
-                    is_valid = False
-                    reject_reason = "address_ar is mostly English"
-            elif field == "address_en":
-                if en_cnt == 0 or (ar_cnt > 0 and ar_cnt > en_cnt):
-                    is_valid = False
-                    reject_reason = "address_en is mostly Arabic"
-            elif field == "customer_name_ar":
-                if ar_cnt == 0 or (en_cnt > 0 and en_cnt > ar_cnt):
-                    is_valid = False
-                    reject_reason = "customer_name_ar is mostly English"
-                elif is_invalid_customer_name(val):
-                    is_valid = False
-                    reject_reason = "customer_name_ar contains invalid keywords or layout"
-            elif field == "customer_name_en":
-                if en_cnt == 0 or (ar_cnt > 0 and ar_cnt > en_cnt):
-                    is_valid = False
-                    reject_reason = "customer_name_en is mostly Arabic"
-                elif is_invalid_customer_name(val):
-                    is_valid = False
-                    reject_reason = "customer_name_en contains invalid keywords or layout"
-
-            # Check general validations (e.g. not invoice titles, total amounts etc.)
-            if is_valid and not validate_field_value(field, val):
-                is_valid = False
-                reject_reason = f"value '{val}' did not pass general validation check for {field}"
-
-            if not is_valid:
-                print(f"Rejected value '{val}' for field {field}: {reject_reason}", flush=True)
-                LOGGER.warning(f"Rejected value '{val}' for field {field}: {reject_reason}")
-                
-                # Perform company name recovery from OCR text if it's a vendor name field
-                recovered = ""
-                if field == "vendor_name_ar":
-                    recovered = find_arabic_company_name(ocr_text)
-                elif field == "vendor_name_en":
-                    recovered = find_english_company_name(ocr_text)
-                    
-                if recovered:
-                    print(f"Recovered replacement '{recovered}' for field {field} from OCR text", flush=True)
-                    payload[field] = recovered
-                    new_ar, new_en = count_chars_by_language(recovered)
-                    if field == "vendor_name_ar" and new_ar > new_en:
-                        forced_confidences[field] = 0.95
-                    elif field == "vendor_name_en" and new_en > new_ar:
-                        forced_confidences[field] = 0.95
-                    else:
-                        forced_confidences[field] = 0.0
-                else:
-                    payload[field] = ""
-                    forced_confidences[field] = 0.0
-
-        # Fallback/refinement using deterministic NumericExtractor for empty/missing numeric/metadata fields
-        from services.numeric_extractor import NumericExtractor
-        num_extractor = NumericExtractor()
-        
-        # 1. Amounts fallback
-        if payload.get("subtotal") in (None, "") or payload.get("tax_amount") in (None, "") or payload.get("total_amount") in (None, ""):
-            det_amounts = num_extractor._extract_amounts_via_regex(ocr_text)
-            if det_amounts.get("total_amount") is not None:
-                if payload.get("subtotal") in (None, ""):
-                    payload["subtotal"] = det_amounts.get("subtotal")
-                if payload.get("tax_amount") in (None, ""):
-                    payload["tax_amount"] = det_amounts.get("tax_amount")
-                if payload.get("total_amount") in (None, ""):
-                    payload["total_amount"] = det_amounts.get("total_amount")
-                    
-        # 2. Document number fallback
-        if not payload.get("document_number"):
-            det_doc_num = num_extractor._extract_document_number(ocr_text)
-            if det_doc_num:
-                payload["document_number"] = det_doc_num
-                
-        # 3. VAT number fallback
-        if not payload.get("vat_number"):
-            det_vat = num_extractor._extract_vat_number(ocr_text)
-            if det_vat:
-                payload["vat_number"] = det_vat
-                
-        # 4. Document date fallback
-        if not payload.get("document_date"):
-            det_date = num_extractor._extract_document_date(ocr_text)
-            if det_date:
-                payload["document_date"] = det_date
-                
-        # 5. Currency fallback
-        if not payload.get("currency"):
-            det_curr = num_extractor._extract_currency(ocr_text)
-            if det_curr:
-                payload["currency"] = det_curr
-
-        issues: list[dict[str, str]] = []
-
-        # 1. Validate & Normalize Dates
-        raw_date = payload.get("document_date")
-        normalized_date, date_issues = self._validate_date(raw_date)
-        payload["document_date"] = normalized_date
-        issues.extend(date_issues)
-
-        # 2. Validate & Normalize Amounts
-        subtotal, sub_issues = self._parse_amount(payload.get("subtotal"), "subtotal")
-        tax_amount, tax_issues = self._parse_amount(payload.get("tax_amount"), "tax_amount")
-        total_amount, total_issues = self._parse_amount(payload.get("total_amount"), "total_amount")
-        
-        payload["subtotal"] = subtotal
-        payload["tax_amount"] = tax_amount
-        payload["total_amount"] = total_amount
-        
-        issues.extend(sub_issues)
-        issues.extend(tax_issues)
-        issues.extend(total_issues)
-
-        # 3. Validate VAT format
-        vat_num = payload.get("vat_number")
-        if vat_num:
-            vat_issues = self._validate_vat(vat_num)
-            issues.extend(vat_issues)
-
-        # 4. Math check
-        math_issues = self._check_math(subtotal, tax_amount, total_amount)
-        issues.extend(math_issues)
-
-        # 5. Grounding check & Confidence Score
-        confidences = {field: 0.0 for field in FINAL_COLUMNS}
-        norm_ocr = self._normalize_text(ocr_text)
-
-        for field in FINAL_COLUMNS:
-            val = payload.get(field)
-            if val in (None, ""):
-                continue
-
-            # Grounding logic
-            is_grounded = False
-            if field in ("subtotal", "tax_amount", "total_amount"):
-                clean_digits = re.sub(r"\D", "", f"{float(val):.2f}")
-                clean_digits_short = re.sub(r"\D", "", f"{float(val):.0f}")
-                if (clean_digits and clean_digits in norm_ocr) or (clean_digits_short and clean_digits_short in norm_ocr):
-                    is_grounded = True
-            elif field == "document_date":
-                date_str = str(val)
-                parts = re.findall(r"\d+", date_str)
-                if parts and all(part in norm_ocr for part in parts):
-                    is_grounded = True
-            elif field in ("vendor_name_ar", "vendor_name_en", "customer_name_ar", "customer_name_en", "address_ar", "address_en"):
-                norm_val = self._normalize_text(val)
-                fuzzy_score = fuzz.partial_ratio(norm_val, norm_ocr)
-                if fuzzy_score >= 85.0:
-                    is_grounded = True
-            else:
-                norm_val = self._normalize_text(val)
-                if norm_val in norm_ocr:
-                    is_grounded = True
-
-            if is_grounded:
-                confidences[field] = 1.0
-            else:
-                confidences[field] = 0.0
+        # 1. Invoice Number Check
+        doc_num = payload.get("document_number")
+        if not doc_num:
+            issues.append({
+                "field": "document_number",
+                "message": "Invoice number is missing or empty.",
+                "severity": "error"
+            })
+            penalties += 0.2
+        else:
+            norm_doc = normalize_for_check(doc_num)
+            norm_ocr = normalize_for_check(ocr_text)
+            if norm_doc not in norm_ocr:
                 issues.append({
-                    "field": field,
-                    "message": f"Field '{field}' value '{val}' is not grounded in the OCR text.",
+                    "field": "document_number",
+                    "message": f"Invoice number '{doc_num}' does not exist in OCR text.",
+                    "severity": "error"
+                })
+                penalties += 0.2
+
+        # 2. VAT Number Check
+        vat_num = payload.get("vat_number")
+        if not vat_num:
+            issues.append({
+                "field": "vat_number",
+                "message": "VAT number is missing or empty.",
+                "severity": "warning"
+            })
+            penalties += 0.15
+        else:
+            norm_vat = normalize_for_check(vat_num)
+            norm_ocr = normalize_for_check(ocr_text)
+            if norm_vat not in norm_ocr:
+                issues.append({
+                    "field": "vat_number",
+                    "message": f"VAT number '{vat_num}' does not exist in OCR text.",
                     "severity": "warning"
                 })
-
-        # Override confidences/values for rejected fields
-        for field, conf in forced_confidences.items():
-            confidences[field] = conf
-            if conf == 0.0:
-                payload[field] = ""
-
-        # Calculate weighted confidence score
-        base_confidence = sum(confidences[f] * FIELD_WEIGHTS[f] for f in FINAL_COLUMNS)
-        
-        # Penalties
-        penalties = 0.0
-        for issue in issues:
-            if issue["severity"] == "error":
                 penalties += 0.15
-            elif issue["severity"] == "warning":
+
+        # 3. Other fields existence check
+        for field in ("vendor_name_ar", "vendor_name_en", "customer_name_ar", "customer_name_en", "address_ar", "address_en", "currency"):
+            val = payload.get(field)
+            if val:
+                norm_val = normalize_for_check(str(val))
+                norm_ocr = normalize_for_check(ocr_text)
+                if norm_val not in norm_ocr:
+                    issues.append({
+                        "field": field,
+                        "message": f"Field '{field}' value '{val}' is not present in OCR text.",
+                        "severity": "warning"
+                    })
+                    penalties += 0.05
+
+        # 4. Date validation
+        doc_date = payload.get("document_date")
+        if not doc_date:
+            issues.append({
+                "field": "document_date",
+                "message": "Document date is missing or empty.",
+                "severity": "warning"
+            })
+            penalties += 0.15
+        else:
+            if not is_valid_date(doc_date):
+                issues.append({
+                    "field": "document_date",
+                    "message": f"Document date '{doc_date}' is not a valid date.",
+                    "severity": "warning"
+                })
+                penalties += 0.15
+            
+            # Grounding check of date numbers in OCR
+            date_digits = "".join(re.findall(r"\d+", doc_date))
+            if date_digits:
+                norm_ocr = normalize_for_check(ocr_text)
+                if not any(part in norm_ocr for part in re.findall(r"\d+", doc_date)):
+                    issues.append({
+                        "field": "document_date",
+                        "message": f"Date digits from '{doc_date}' are not grounded in OCR text.",
+                        "severity": "warning"
+                    })
+                    penalties += 0.05
+
+        # 5. Money validation
+        subtotal = parse_float_amount(payload.get("subtotal"))
+        tax_amount = parse_float_amount(payload.get("tax_amount"))
+        total_amount = parse_float_amount(payload.get("total_amount"))
+
+        # Grounding checks for amounts
+        for field, amt in (("subtotal", subtotal), ("tax_amount", tax_amount), ("total_amount", total_amount)):
+            if amt is not None:
+                if not amount_exists_in_ocr(amt, ocr_text):
+                    issues.append({
+                        "field": field,
+                        "message": f"Amount '{amt}' for '{field}' not found in OCR text.",
+                        "severity": "warning"
+                    })
+                    penalties += 0.05
+            else:
+                issues.append({
+                    "field": field,
+                    "message": f"Amount field '{field}' is missing or empty.",
+                    "severity": "warning"
+                })
                 penalties += 0.05
-        
-        final_confidence = max(0.0, min(1.0, base_confidence - penalties))
-        payload["_confidences"] = confidences
-        payload["_validation"] = {
-            "valid": not any(issue["severity"] == "error" for issue in issues),
+
+        # Math check
+        if subtotal is not None and tax_amount is not None and total_amount is not None:
+            if abs((subtotal + tax_amount) - total_amount) > 0.05:
+                issues.append({
+                    "field": "total_amount",
+                    "message": f"Math check failed: subtotal ({subtotal}) + tax ({tax_amount}) = {subtotal+tax_amount:.2f}, but total is {total_amount}.",
+                    "severity": "error"
+                })
+                penalties += 0.2
+
+        # Final score
+        final_confidence = max(0.0, round(1.0 - penalties, 2))
+
+        payload["_confidence"] = final_confidence
+        validation_results = {
+            "valid": len([i for i in issues if i["severity"] == "error"]) == 0,
             "issues": issues,
         }
-        payload["_confidence"] = round(final_confidence, 2)
+        payload["_validation"] = validation_results
+
+        processing_time = time.perf_counter() - started_time
+
+        # Print debug logging
+        print("\n================ INVOICE EXTRACTION DEBUG LOGS ================", flush=True)
+        print(f"OCR Length: {len(ocr_text)} characters", flush=True)
+        print(f"LLM Prompt Length: {len(prompt)} characters", flush=True)
+        print(f"LLM Response:\n{llm_response}", flush=True)
+        print(f"Parsed JSON:\n{json.dumps(extracted, ensure_ascii=False, indent=2)}", flush=True)
+        print(f"Validation Results:\n{json.dumps(validation_results, ensure_ascii=False, indent=2)}", flush=True)
+        print(f"Processing Time: {processing_time:.4f}s", flush=True)
+        print("===============================================================\n", flush=True)
 
         return payload
-
-    def _validate_date(self, date_str: Any) -> tuple[str, list[dict[str, str]]]:
-        date_str = str(date_str or "").strip()
-        if not date_str:
-            return "", []
-
-        # Try YYYY-MM-DD pattern
-        match_y = re.match(r"^(\d{4})[-/\.](\d{1,2})[-/\.](\d{1,2})$", date_str)
-        if match_y:
-            y, m, d = int(match_y.group(1)), int(match_y.group(2)), int(match_y.group(3))
-            if 1 <= m <= 12 and 1 <= d <= 31:
-                return f"{y:04d}-{m:02d}-{d:02d}", []
-
-        # Try DD-MM-YYYY pattern
-        match_d = re.match(r"^(\d{1,2})[-/\.](\d{1,2})[-/\.](\d{4})$", date_str)
-        if match_d:
-            d, m, y = int(match_d.group(1)), int(match_d.group(2)), int(match_d.group(3))
-            if 1 <= m <= 12 and 1 <= d <= 31:
-                return f"{y:04d}-{m:02d}-{d:02d}", []
-
-        issues = [{
-            "field": "document_date",
-            "message": f"Document date '{date_str}' is not in YYYY-MM-DD or DD-MM-YYYY format.",
-            "severity": "warning"
-        }]
-        return date_str, issues
-
-    def _parse_amount(self, value: Any, field_name: str) -> tuple[float | None, list[dict[str, str]]]:
-        if value in (None, ""):
-            return None, []
-        if isinstance(value, (int, float)):
-            return float(value), []
-
-        val_str = str(value).strip().replace(" ", "")
-        val_str = re.sub(r"(?i)[a-z]+", "", val_str)
-        val_str = val_str.replace("$", "").replace("€", "").replace("£", "")
-        val_str = val_str.replace(",", "")
-        
-        try:
-            return float(val_str), []
-        except ValueError:
-            return None, [{
-                "field": field_name,
-                "message": f"Failed to parse amount '{value}' to a valid number.",
-                "severity": "warning"
-            }]
-
-    def _validate_vat(self, vat_number: str) -> list[dict[str, str]]:
-        digits = re.sub(r"\D", "", str(vat_number or ""))
-        if not digits:
-            return []
-
-        issues = []
-        if len(digits) != 15:
-            issues.append({
-                "field": "vat_number",
-                "message": f"VAT number '{vat_number}' is not 15 digits (got {len(digits)} digits).",
-                "severity": "warning"
-            })
-        if not digits.startswith("3"):
-            issues.append({
-                "field": "vat_number",
-                "message": f"VAT number '{vat_number}' does not match KSA format (must start with 3).",
-                "severity": "warning"
-            })
-        return issues
-
-    def _check_math(self, subtotal: float | None, tax_amount: float | None, total_amount: float | None) -> list[dict[str, str]]:
-        if subtotal is None or tax_amount is None or total_amount is None:
-            return []
-        
-        diff = abs(subtotal + tax_amount - total_amount)
-        if diff >= 0.05:
-            return [{
-                "field": "total_amount",
-                "message": f"Math check failed: Subtotal ({subtotal}) + Tax Amount ({tax_amount}) = {subtotal + tax_amount:.2f}, but Total Amount is {total_amount}.",
-                "severity": "error"
-            }]
-        return []

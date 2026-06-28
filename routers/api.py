@@ -199,8 +199,8 @@ async def upload_documents(request: Request) -> JSONResponse:
 
         LOGGER.info("Upload request completed")
         LOGGER.info("Response returned")
-        is_qwen_available = workflow._hybrid_invoice_extractor.ollama_extractor.is_available
-        msg = "Documents processed" if is_qwen_available else "Documents processed. Arabic extractor is unavailable."
+        is_qwen_available = workflow._qwen_llm_extractor.is_available
+        msg = "Documents processed" if is_qwen_available else "Documents processed. Extraction model is unavailable."
         return JSONResponse({
             "message": msg,
             "results": results,

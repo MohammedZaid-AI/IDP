@@ -106,20 +106,14 @@ def create_app() -> FastAPI:
 
     # Initialize active models once at startup
     from services.workflow import workflow
-    from services.settings import get_settings
-    active_engine = os.environ.get("EXTRACTION_ENGINE", get_settings().extraction_engine)
-    LOGGER.info("Active extraction engine configured: %s", active_engine)
+    LOGGER.info("Active extraction engine configured: qwen_llm")
     
     try:
-        if active_engine == "qwen_llm":
-            if not hasattr(workflow, "_qwen_llm_extractor"):
-                from services.qwen_llm_extractor import QwenLlmExtractionService
-                workflow._qwen_llm_extractor = QwenLlmExtractionService()
-            workflow._qwen_llm_extractor.ensure_initialized()
-            LOGGER.info("✓ Production Qwen LLM model (Qari OCR and Local Qwen2.5-3B) initialized successfully.")
-        else:
-            workflow._hybrid_invoice_extractor.ensure_initialized()
-            LOGGER.info("✓ Production hybrid models (PaddleOCR, Qari OCR, and Local Qwen2.5-3B) initialized successfully.")
+        if not hasattr(workflow, "_qwen_llm_extractor"):
+            from services.qwen_llm_extractor import QwenLlmExtractionService
+            workflow._qwen_llm_extractor = QwenLlmExtractionService()
+        workflow._qwen_llm_extractor.ensure_initialized()
+        LOGGER.info("✓ Production Qwen LLM model (Qari OCR and Local Qwen2.5-3B) initialized successfully.")
     except Exception as exc:
         LOGGER.error("✗ Failed to initialize production models at startup: %s", exc)
 

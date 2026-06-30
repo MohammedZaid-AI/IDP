@@ -14,15 +14,9 @@ from sqlalchemy import select
 from starlette.templating import Jinja2Templates
 
 from database.crud import (
-    delete_document,
-    get_all_documents,
-    get_document,
-    search_documents,
-    list_processing_sessions,
     list_recent_sessions,
     get_processing_session,
 )
-from database.repository import dashboard_metrics
 from database.db import SessionLocal
 from database.models import User, ProcessingSession, Document
 
@@ -93,7 +87,6 @@ def dashboard_page(request: Request):
                 "documents": documents,
                 "excel_url": excel_url,
                 "active_page": "dashboard",
-                "metrics": dashboard_metrics(session),
             },
         )
 

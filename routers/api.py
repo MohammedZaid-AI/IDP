@@ -5,7 +5,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -18,7 +17,6 @@ from database.crud import (
 from database.db import SessionLocal
 from database.models import ProcessingSession, Document
 from database.repository import (
-    dashboard_metrics,
     get_document,
     get_document_detail,
     list_documents,
@@ -35,10 +33,7 @@ LOGGER = logging.getLogger(__name__)
 SUPPORTED_UPLOAD_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".bmp", ".webp"}
 
 
-@api_router.get("/metrics/dashboard")
-def dashboard_metrics_api() -> JSONResponse:
-    with SessionLocal() as session:
-        return JSONResponse(dashboard_metrics(session))
+
 
 
 @api_router.get("/documents")

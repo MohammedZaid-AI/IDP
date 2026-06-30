@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -13,15 +12,6 @@ from sqlalchemy.orm import Session, selectinload
 from database.crud import create_document, get_document as fetch_document, get_document as fetch_document_detail, search_documents
 from database.db import SessionLocal
 from database.models import AuditLog, Document, Extraction, Review, User
-
-
-@contextmanager
-def get_session() -> Session:
-    session = SessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
 
 
 LOGGER = logging.getLogger(__name__)
@@ -180,30 +170,6 @@ def get_document_detail(session: Session, document_id: int) -> Document | None:
     return fetch_document_detail(session, document_id)
 
 
-def dashboard_metrics(session: Session) -> dict[str, Any]:
-    total_documents = session.scalar(select(func.count(Document.id))) or 0
-    approved = session.scalar(select(func.count(Document.id)).where(Document.status.in_(["approved", "Approved"]))) or 0
-    pending = session.scalar(select(func.count(Document.id)).where(Document.status.in_(["pending_review", "in_review", "Needs Review"]))) or 0
-    rejected = session.scalar(select(func.count(Document.id)).where(Document.status.in_(["rejected", "Rejected"]))) or 0
-    exported = session.scalar(select(func.count(Document.id)).where(Document.excel_file_path != "")) or 0
-    avg_confidence = session.scalar(select(func.avg(Document.confidence))) or 0.0
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    documents_today = session.scalar(select(func.count(Document.id)).where(Document.created_at >= today_start)) or 0
-    avg_processing = session.scalar(select(func.avg(Document.processing_time))) or 0.0
-    validation_failures = session.scalar(select(func.count(Document.id)).where(Document.confidence < 0.75)) or 0
-    extraction_accuracy = round((approved / total_documents) * 100, 2) if total_documents else 0.0
-    return {
-        "total_documents": total_documents,
-        "approved": approved,
-        "pending_review": pending,
-        "rejected": rejected,
-        "exported": exported,
-        "average_confidence": round(float(avg_confidence), 2),
-        "documents_today": documents_today,
-        "extraction_accuracy": extraction_accuracy,
-        "processing_time": round(float(avg_processing), 2),
-        "validation_failures": validation_failures,
-    }
 
 
 def analytics_payload(session: Session) -> dict[str, Any]:

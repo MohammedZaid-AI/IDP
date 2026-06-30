@@ -1,38 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
-
-
-class ExportFormat(str, Enum):
-    excel = "xlsx"
-    csv = "csv"
-    json = "json"
-
-
-class DocumentSummary(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    filename: str
-    document_type: str
-    status: str
-    confidence: float
-    excel_file_path: str = ""
-    created_at: datetime
-
-
-class DocumentDetail(DocumentSummary):
-    json_output: str
-    ocr_text: str = ""
-    raw_llm_response: str = ""
-    extracted_json: str = "{}"
-    validation_result: str = "{}"
-    processing_time: float = 0.0
-    page_count: int = 1
+from pydantic import BaseModel, Field
 
 
 class ValidationIssue(BaseModel):
@@ -63,15 +34,3 @@ class ProcessingResult(BaseModel):
     processing_time: float
     page_count: int = 1
     processing_timings: dict[str, Any] = Field(default_factory=dict)
-
-
-class DashboardMetrics(BaseModel):
-    total_documents: int
-    approved: int
-    pending_review: int
-    rejected: int
-    average_confidence: float
-    documents_today: int
-    extraction_accuracy: float
-    processing_time: float
-    validation_failures: int

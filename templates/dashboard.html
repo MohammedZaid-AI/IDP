@@ -3,71 +3,8 @@
 <div class="row justify-content-center">
   <div class="col-12">
 
-    <!-- Overview Statistics Ribbon -->
-    <div class="metrics-row mb-4">
-      {% if active_session %}
-        <!-- Session specific metrics -->
-        {% set s_processed = documents|length %}
-        {% set s_approved = documents | selectattr("status", "equalto", "Approved") | list | length %}
-        {% set s_pending = documents | selectattr("status", "equalto", "Needs Review") | list | length %}
-        {% set s_rejected = documents | selectattr("status", "equalto", "Rejected") | list | length %}
-        {% set s_exported = documents | selectattr("excel_file_path", "ne", "") | list | length %}
-        {% set s_avg_conf = (documents | map(attribute="confidence") | sum / s_processed * 100) if s_processed else 100 %}
-        
-        <div class="metrics-card-custom border-primary">
-          <div class="text-secondary small fw-semibold text-uppercase">Session Processed</div>
-          <div class="value text-primary">{{ s_processed }}</div>
-        </div>
-        <div class="metrics-card-custom border-info">
-          <div class="text-secondary small fw-semibold text-uppercase">Average Confidence</div>
-          <div class="value text-info">{{ "%.0f"|format(s_avg_conf) }}%</div>
-        </div>
-        <div class="metrics-card-custom border-warning">
-          <div class="text-secondary small fw-semibold text-uppercase">Pending Review</div>
-          <div class="value text-warning">{{ s_pending }}</div>
-        </div>
-        <div class="metrics-card-custom border-success">
-          <div class="text-secondary small fw-semibold text-uppercase">Approved</div>
-          <div class="value text-success">{{ s_approved }}</div>
-        </div>
-        <div class="metrics-card-custom border-danger">
-          <div class="text-secondary small fw-semibold text-uppercase">Rejected</div>
-          <div class="value text-danger">{{ s_rejected }}</div>
-        </div>
-        <div class="metrics-card-custom border-secondary">
-          <div class="text-secondary small fw-semibold text-uppercase">Exported</div>
-          <div class="value text-secondary">{{ s_exported }}</div>
-        </div>
-      {% else %}
-        <!-- Platform-wide global metrics -->
-        <div class="metrics-card-custom border-primary">
-          <div class="text-secondary small fw-semibold text-uppercase">Documents Processed</div>
-          <div class="value text-primary">{{ metrics.total_documents }}</div>
-        </div>
-        <div class="metrics-card-custom border-info">
-          <div class="text-secondary small fw-semibold text-uppercase">Average Confidence</div>
-          <div class="value text-info">{{ "%.0f"|format(metrics.average_confidence * 100) }}%</div>
-        </div>
-        <div class="metrics-card-custom border-warning">
-          <div class="text-secondary small fw-semibold text-uppercase">Pending Review</div>
-          <div class="value text-warning">{{ metrics.pending_review }}</div>
-        </div>
-        <div class="metrics-card-custom border-success">
-          <div class="text-secondary small fw-semibold text-uppercase">Approved</div>
-          <div class="value text-success">{{ metrics.approved }}</div>
-        </div>
-        <div class="metrics-card-custom border-danger">
-          <div class="text-secondary small fw-semibold text-uppercase">Rejected</div>
-          <div class="value text-danger">{{ metrics.rejected }}</div>
-        </div>
-        <div class="metrics-card-custom border-secondary">
-          <div class="text-secondary small fw-semibold text-uppercase">Exported</div>
-          <div class="value text-secondary">{{ metrics.exported }}</div>
-        </div>
-      {% endif %}
-    </div>
-
     {% if active_session %}
+      {% set s_pending = documents | selectattr("status", "equalto", "Needs Review") | list | length %}
       <!-- Active Session View -->
       <div class="panel mb-4">
         <div class="panel-body d-flex justify-content-between align-items-center flex-wrap gap-3">

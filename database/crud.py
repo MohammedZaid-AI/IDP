@@ -101,17 +101,6 @@ def get_document(session: Session, document_id: int) -> Document | None:
     return session.execute(query).scalar_one_or_none()
 
 
-def get_all_documents(
-    session: Session,
-    *,
-    page: int = 1,
-    page_size: int = 12,
-    sort: str = "created_at",
-    descending: bool = True,
-) -> tuple[list[Document], int]:
-    return search_documents(session, page=page, page_size=page_size, sort=sort, descending=descending)
-
-
 def delete_document(session: Session, document_id: int) -> bool:
     document = session.get(Document, document_id)
     if document is None:
@@ -198,11 +187,6 @@ def get_processing_session(session: Session, session_id: int) -> ProcessingSessi
         .options(selectinload(ProcessingSession.documents))
     )
     return session.execute(query).scalar_one_or_none()
-
-
-def list_processing_sessions(session: Session) -> list[ProcessingSession]:
-    query = select(ProcessingSession).order_by(ProcessingSession.created_at.desc())
-    return list(session.execute(query).scalars().all())
 
 
 def list_recent_sessions(session: Session, limit: int = 10) -> list[ProcessingSession]:

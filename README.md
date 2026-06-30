@@ -1,6 +1,6 @@
 # Intelligent Document Processing (IDP) Platform
 
-The Intelligent Document Processing (IDP) Platform is a professional solution designed to automate the ingestion, classification, and extraction of key data from financial documents using artificial intelligence. The platform processes documents locally, converting unstructured paper and digital documents into structured, verified datasets, significantly reducing manual administrative effort.
+The Intelligent Document Processing (IDP) Platform is a professional solution designed to automate the ingestion, classification, and extraction of key data from financial documents using artificial intelligence. The platform processes documents locally, converting unstructured paper and digital documents into structured, verified datasets, significantly reducing manual administrative effort
 
 The platform is capable of processing a wide variety of financial and business documents, including:
 - Invoices

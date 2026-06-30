@@ -128,6 +128,19 @@ class MultiModelDocumentWorkflow:
             "required_fields": [],
         }
         state["confidence"] = ext_result.confidence
+
+        # Determine document status based on field confidences and error philosophy
+        field_confidences = validation_payload.get("field_confidences", {})
+        has_low_confidence = any(c < 0.80 for f, c in field_confidences.items())
+
+        if ext_result.confidence <= 0.05:
+            status = "Rejected"
+        elif has_low_confidence:
+            status = "Needs Review"
+        else:
+            status = "Approved"
+
+        state["status"] = status
         return state
 
     def _persist_node(self, state: WorkflowState) -> WorkflowState:

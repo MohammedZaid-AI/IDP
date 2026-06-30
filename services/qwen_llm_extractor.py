@@ -52,14 +52,141 @@ def normalize_for_check(text: str) -> str:
     if not text:
         return ""
     text = text.lower()
+    arabic_digits = "٠١٢٣٤٥٦٧٨٩"
+    persian_digits = "۰۱۲۳۴۵۶۷٨٩"
+    for i in range(10):
+        text = text.replace(arabic_digits[i], str(i)).replace(persian_digits[i], str(i))
     return re.sub(r'[\W_]+', '', text, flags=re.UNICODE)
 
 
+def normalize_number_str(s: str) -> str:
+    # 1. Convert Arabic and Persian digits to English digits
+    arabic_digits = "٠١٢٣٤٥٦٧٨٩"
+    persian_digits = "۰۱۲۳۴۵۶۷٨٩"
+    for i in range(10):
+        s = s.replace(arabic_digits[i], str(i)).replace(persian_digits[i], str(i))
+    
+    # 2. Normalize Arabic decimal comma ٫
+    s = s.replace("٫", ".")
+    
+    # 3. Remove spaces and other whitespace
+    s = re.sub(r'\s+', '', s)
+    
+    # 4. Check for both period and comma
+    if "." in s and "," in s:
+        dot_idx = s.rfind(".")
+        comma_idx = s.rfind(",")
+        if dot_idx < comma_idx:
+            # Period is thousands, comma is decimal (e.g. 28.100,31)
+            s = s.replace(".", "")
+            s = s.replace(",", ".")
+        else:
+            # Comma is thousands, period is decimal (e.g. 28,100.31)
+            s = s.replace(",", "")
+    elif "," in s:
+        # Only comma present. Determine if thousands or decimal.
+        if re.search(r',\d{1,2}$', s):
+            s = s.replace(",", ".")
+        else:
+            s = s.replace(",", "")
+            
+    return s
+
+
+def normalize_number(val: Any) -> float | None:
+    if val is None or val == "":
+        return None
+    if isinstance(val, (int, float)):
+        return float(val)
+    try:
+        s = str(val).strip()
+        s = normalize_number_str(s)
+        # Keep only digits, minus, and period
+        s = re.sub(r'[^\d.-]', '', s)
+        return float(s)
+    except Exception:
+        return None
+
+
 def amount_exists_in_ocr(val: float, ocr_text: str) -> bool:
-    clean_ocr = normalize_for_check(ocr_text)
-    clean_digits = re.sub(r'\D', '', f"{val:.2f}")
-    clean_digits_short = re.sub(r'\D', '', f"{val:.0f}")
-    return (clean_digits in clean_ocr) or (clean_digits_short in clean_ocr)
+    # Find all potential number strings in OCR
+    pattern = r'[\d\s.,٫\u0660-\u0669\u06f0-\u06f9]+'
+    candidates = re.findall(pattern, ocr_text)
+    target = round(val, 2)
+    for cand in candidates:
+        norm = normalize_number(cand)
+        if norm is not None:
+            if abs(round(norm, 2) - target) < 0.01:
+                return True
+    return False
+
+
+def ocr_contains_field(field_name: str, ocr_text: str) -> bool:
+    # Vendor is always present on an invoice, so we bypass checking keywords
+    if field_name in ("vendor_name_ar", "vendor_name_en"):
+        return True
+
+    ocr_lower = ocr_text.lower()
+    # Normalize Arabic digits in OCR for matching
+    arabic_digits = "٠١٢٣٤٥٦٧٨٩"
+    persian_digits = "۰۱۲۳۴۵۶۷٨٩"
+    for i in range(10):
+        ocr_lower = ocr_lower.replace(arabic_digits[i], str(i)).replace(persian_digits[i], str(i))
+
+    keywords = {
+        "document_number": [
+            "invoice no", "invoice number", "inv no", "inv number", "invoice#", "invoice #",
+            "فاتورة رقم", "رقم الفاتورة", "رقم", "رقم المستند"
+        ],
+        "vat_number": [
+            "vat no", "vat number", "vat id", "الرقم الضريبي", "الرقم التعريفي الضريبي", "tin",
+            "tax registration", "tax no", "tax number", "رقم التسجيل الضريبي"
+        ],
+        "document_date": [
+            "date", "issue date", "invoice date", "التاريخ", "تاريخ الفاتورة", "تاريخ الاصدار", "تاريخ"
+        ],
+        "currency": [
+            "sar", "riy", "ريال", "ر.س", "sr", "currency", "العملة"
+        ],
+        "subtotal": [
+            "subtotal", "sub-total", "net amount", "before vat", "before tax", "الاجمالي قبل", "المجموع قبل",
+            "المبلغ الخاضع للضريبة"
+        ],
+        "tax_amount": [
+            "vat", "tax", "value added tax", "الضريبة", "قيمة الضريبة", "مبلغ الضريبة"
+        ],
+        "total_amount": [
+            "total", "grand total", "total amount", "net total", "amount due", "المجموع", "الاجمالي", "الصافي",
+            "المبلغ المستحق"
+        ],
+        "customer_name_ar": [
+            "customer", "bill to", "sold to", "client", "العميل", "المشتري", "السادة", "إلى"
+        ],
+        "customer_name_en": [
+            "customer", "bill to", "sold to", "client", "العميل", "المشتري", "السادة", "to"
+        ],
+        "address_ar": [
+            "address", "location", "العنوان", "الموقع", "ص.ب"
+        ],
+        "address_en": [
+            "address", "location", "العنوان", "الموقع", "p.o.box", "p.o. box"
+        ],
+        "purchase_order": [
+            "po #", "po no", "po number", "purchase order", "طلب شراء", "p.o", "p.o."
+        ],
+        "payment_terms": [
+            "payment terms", "payment term", "شروط الدفع", "تاريخ الاستحقاق", "due date"
+        ],
+        "customer_vat": [
+            "customer vat", "customer's vat", "الرقم الضريبي للمشتري", "الرقم الضريبي للعميل"
+        ]
+    }
+    
+    if field_name not in keywords:
+        field_clean = field_name.replace("_", " ")
+        return field_clean in ocr_lower
+        
+    return any(kw in ocr_lower for kw in keywords[field_name])
 
 
 def normalize_currency(val: Any) -> str:
@@ -106,7 +233,7 @@ class QwenLlmExtractionService:
     def __init__(self) -> None:
         settings = get_settings()
         self.url = settings.ollama_url.rstrip("/")
-        self.model = "qwen2.5:3b"
+        self.model = "gemma4:e4b"
         self.qari = QariOCRService()
 
     @property
@@ -177,190 +304,102 @@ class QwenLlmExtractionService:
         )
 
     def _run_qwen_extraction(self, ocr_text: str) -> tuple[dict[str, Any], str, str]:
-        prompt = f"""You are a highly accurate invoice extraction engine.
+        prompt = f"""You are an expert financial document analyst.
 
-Your job is to extract structured information from OCR text.
+You are given the OCR transcription of a business document.
 
-You MUST return ONLY valid JSON.
+Read the document exactly as a human accountant would.
+
+Understand the document.
+
+Identify the important business information that should be stored in a financial document management system.
+
+Ignore decorative text, repeated OCR artefacts, page layout information, HTML tags, OCR metadata, and product table formatting.
+
+Return the structured information.
+
+Determine:
+* What type of document this is.
+* Which information is important.
+* Which information should be ignored.
+
+You MUST return ONLY valid JSON matching the canonical schema below.
 Never explain.
 Never use markdown.
 Never include comments.
 Never include code blocks.
 Never return anything except the JSON object.
 
-GENERAL RULES:
-The OCR text may contain:
-- Arabic
-- English
-- Mixed Arabic and English
-- Tables
-- Product descriptions
-- Headers
-- Footers
-- Phone numbers
-- VAT numbers
-- CR numbers
-- PO numbers
-
-Your job is to identify ONLY the requested invoice entities.
-Never guess.
-If uncertain, return an empty string or null.
-
-VERY IMPORTANT:
-For every field, return ONLY the value.
-Never include labels.
-Never include neighbouring lines.
-Never include surrounding paragraphs.
-
-Example:
-OCR:
-Vendor Name
-ABC Trading Company
-PO Box 123
-
-Correct:
-"vendor_name_en": "ABC Trading Company"
-
-Wrong:
-"vendor_name_en": "Vendor Name\nABC Trading Company\nPO Box 123"
-
-DOCUMENT NUMBER:
-Choose ONLY the actual invoice number.
-Ignore:
-- Revenue Number
-- Customer Number
-- CR Number
-- PO Number
-- Delivery Number
-- Reference Number
-- Serial Number
-- Item Code
-- Product Code
-If the invoice number is empty on the document, return "".
-Never guess.
-
-VENDOR:
-Return ONLY the company name.
-Do NOT include:
-- Address
-- Phone
-- Fax
-- VAT
-- Email
-- Website
-- PO Box
-
-Correct: ABC Trading Company
-Wrong:
-ABC Trading Company
-PO Box 123
-Riyadh
-Saudi Arabia
-
-CUSTOMER:
-Return ONLY the customer name.
-Never include:
-- Address
-- PO Box
-- VAT
-- Reference
-- Invoice Number
-
-ADDRESS:
-Return ONLY the address.
-Do not include:
-- Vendor name
-- Customer name
-- Phone
-- Email
-- VAT
-- Invoice Number
-
-VAT NUMBER:
-Return ONLY the VAT registration number.
-Never return:
-- CR
-- PO
-- Invoice Number
-
-DATE:
-Return ONLY the invoice date.
-Prefer:
-- Invoice Date
-- Issue Date
-- Tax Invoice Date
-Do NOT use:
-- Delivery Date
-- Supply Date
-- Due Date
-unless the invoice date is missing.
-
-AMOUNTS:
-Extract ONLY:
-- subtotal
-- tax_amount
-- total_amount
-Ignore:
-- Unit Price
-- Quantity
-- Line Total
-- Product Total
-- Discount %
-
-LANGUAGE:
-If the text is Arabic, store it in the Arabic field.
-If the text is English, store it in the English field.
-Never translate.
-Never duplicate Arabic into English.
-Never duplicate English into Arabic.
-
-NEGATIVE EXAMPLES:
-
-Wrong vendor_name:
-ABC Trading
-PO Box 123
-Riyadh
-Correct vendor_name:
-ABC Trading
-
-Wrong document_number:
-Invoice Number
-PO Box 123
-Correct document_number:
-736
-
-Wrong address:
-ABC Trading
-PO Box
-VAT Number
-Phone
-Correct address:
-PO Box 123
-Riyadh
-Saudi Arabia
-
-OUTPUT FORMAT:
-Return EXACTLY a JSON object with this structure:
+CANONICAL SCHEMA:
 {{
-    "document_number": "",
+  "document_type": "",
+  "document": {{
+    "number": "",
+    "date": "",
+    "currency": ""
+  }},
+  "vendor": {{
+    "name_ar": "",
+    "name_en": "",
     "vat_number": "",
-    "document_date": "",
-    "currency": "",
-    "vendor_name_ar": "",
-    "vendor_name_en": "",
-    "customer_name_ar": "",
-    "customer_name_en": "",
     "address_ar": "",
-    "address_en": "",
+    "address_en": ""
+  }},
+  "customer": {{
+    "name_ar": "",
+    "name_en": "",
+    "address_ar": "",
+    "address_en": ""
+  }},
+  "financials": {{
     "subtotal": null,
     "tax_amount": null,
     "total_amount": null
+  }},
+  "metadata": {{
+    "purchase_order": "",
+    "reference_number": "",
+    "payment_terms": "",
+    "notes": ""
+  }}
 }}
 
 OCR TEXT:
 {ocr_text}"""
 
         extracted_json = {field: ("" if "name" in field or "address" in field or field in ("document_number", "vat_number", "document_date", "currency") else None) for field in FINAL_COLUMNS}
+        extracted_json.update({
+            "document_type": "invoice",
+            "document": {
+                "number": "",
+                "date": "",
+                "currency": ""
+            },
+            "vendor": {
+                "name_ar": "",
+                "name_en": "",
+                "vat_number": "",
+                "address_ar": "",
+                "address_en": ""
+            },
+            "customer": {
+                "name_ar": "",
+                "name_en": "",
+                "address_ar": "",
+                "address_en": ""
+            },
+            "financials": {
+                "subtotal": None,
+                "tax_amount": None,
+                "total_amount": None
+            },
+            "metadata": {
+                "purchase_order": "",
+                "reference_number": "",
+                "payment_terms": "",
+                "notes": ""
+            }
+        })
         raw_response = ""
 
         try:
@@ -381,13 +420,43 @@ OCR TEXT:
                     raw_response = res.json().get("response", "").strip()
                     parsed = self._parse_json(raw_response)
                     if parsed:
-                        for key in extracted_json:
-                            val = parsed.get(key)
-                            if val is not None:
-                                if isinstance(val, str):
-                                    extracted_json[key] = val.strip()
-                                else:
-                                    extracted_json[key] = val
+                        # Copy the canonical schema keys directly to extracted_json
+                        extracted_json["document_type"] = parsed.get("document_type") or "invoice"
+                        extracted_json["document"] = parsed.get("document") or {}
+                        extracted_json["vendor"] = parsed.get("vendor") or {}
+                        extracted_json["customer"] = parsed.get("customer") or {}
+                        extracted_json["financials"] = parsed.get("financials") or {}
+                        extracted_json["metadata"] = parsed.get("metadata") or {}
+                        
+                        # Populate flat fields for backward compatibility
+                        doc_info = extracted_json["document"]
+                        vendor_info = extracted_json["vendor"]
+                        customer_info = extracted_json["customer"]
+                        financial_info = extracted_json["financials"]
+                        
+                        def get_str(d, k):
+                            if not isinstance(d, dict):
+                                return ""
+                            v = d.get(k)
+                            return str(v).strip() if v is not None else ""
+                            
+                        extracted_json["document_number"] = get_str(doc_info, "number")
+                        extracted_json["vat_number"] = get_str(vendor_info, "vat_number")
+                        extracted_json["document_date"] = get_str(doc_info, "date")
+                        extracted_json["currency"] = get_str(doc_info, "currency")
+                        
+                        extracted_json["vendor_name_ar"] = get_str(vendor_info, "name_ar")
+                        extracted_json["vendor_name_en"] = get_str(vendor_info, "name_en")
+                        extracted_json["address_ar"] = get_str(vendor_info, "address_ar")
+                        extracted_json["address_en"] = get_str(vendor_info, "address_en")
+                        
+                        extracted_json["customer_name_ar"] = get_str(customer_info, "name_ar")
+                        extracted_json["customer_name_en"] = get_str(customer_info, "name_en")
+                        
+                        if isinstance(financial_info, dict):
+                            extracted_json["subtotal"] = parse_float_amount(financial_info.get("subtotal"))
+                            extracted_json["tax_amount"] = parse_float_amount(financial_info.get("tax_amount"))
+                            extracted_json["total_amount"] = parse_float_amount(financial_info.get("total_amount"))
                 else:
                     LOGGER.error("Ollama API failed status=%d response=%s", res.status_code, res.text)
         except Exception as exc:
@@ -430,115 +499,177 @@ OCR TEXT:
         if "currency" in payload and payload["currency"]:
             normalized_curr = normalize_currency(payload["currency"])
             payload["currency"] = normalized_curr
+            if "document" in payload and isinstance(payload["document"], dict):
+                payload["document"]["currency"] = normalized_curr
 
-        # 1. Invoice Number Check
-        doc_num = payload.get("document_number")
-        if not doc_num:
-            issues.append({
-                "field": "document_number",
-                "message": "Invoice number is missing or empty.",
-                "severity": "error"
-            })
-            penalties += 0.2
-        else:
-            norm_doc = normalize_for_check(doc_num)
-            norm_ocr = normalize_for_check(ocr_text)
-            if norm_doc not in norm_ocr:
-                issues.append({
-                    "field": "document_number",
-                    "message": f"Invoice number '{doc_num}' does not exist in OCR text.",
-                    "severity": "error"
-                })
-                penalties += 0.2
+        fields_to_validate = [
+            "document_number",
+            "vat_number",
+            "document_date",
+            "currency",
+            "vendor_name_ar",
+            "vendor_name_en",
+            "customer_name_ar",
+            "customer_name_en",
+            "address_ar",
+            "address_en",
+            "subtotal",
+            "tax_amount",
+            "total_amount",
+            "purchase_order",
+            "customer_vat",
+            "payment_terms"
+        ]
 
-        # 2. VAT Number Check
-        vat_num = payload.get("vat_number")
-        if not vat_num:
-            issues.append({
-                "field": "vat_number",
-                "message": "VAT number is missing or empty.",
-                "severity": "warning"
-            })
-            penalties += 0.15
-        else:
-            norm_vat = normalize_for_check(vat_num)
-            norm_ocr = normalize_for_check(ocr_text)
-            if norm_vat not in norm_ocr:
-                issues.append({
-                    "field": "vat_number",
-                    "message": f"VAT number '{vat_num}' does not exist in OCR text.",
-                    "severity": "warning"
-                })
-                penalties += 0.15
+        def get_field_value(f: str) -> Any:
+            if f in payload:
+                return payload[f]
+            if f == "purchase_order":
+                return payload.get("metadata", {}).get("purchase_order")
+            if f == "payment_terms":
+                return payload.get("metadata", {}).get("payment_terms")
+            if f == "customer_vat":
+                return payload.get("customer", {}).get("vat_number")
+            return None
 
-        # 3. Other fields existence check
-        for field in ("vendor_name_ar", "vendor_name_en", "customer_name_ar", "customer_name_en", "address_ar", "address_en", "currency"):
-            val = payload.get(field)
-            if val:
-                norm_val = normalize_for_check(str(val))
-                norm_ocr = normalize_for_check(ocr_text)
-                if norm_val not in norm_ocr:
-                    issues.append({
-                        "field": field,
-                        "message": f"Field '{field}' value '{val}' is not present in OCR text.",
-                        "severity": "warning"
-                    })
-                    penalties += 0.05
+        field_states = {}
 
-        # 4. Date validation
-        doc_date = payload.get("document_date")
-        if not doc_date:
-            issues.append({
-                "field": "document_date",
-                "message": "Document date is missing or empty.",
-                "severity": "warning"
-            })
-            penalties += 0.15
-        else:
-            if not is_valid_date(doc_date):
-                issues.append({
-                    "field": "document_date",
-                    "message": f"Document date '{doc_date}' is not a valid date.",
-                    "severity": "warning"
-                })
-                penalties += 0.15
+        print("\n================ INVOICE VALIDATION RUN ================", flush=True)
+
+        for field in fields_to_validate:
+            val = get_field_value(field)
+            exists_in_ocr = ocr_contains_field(field, ocr_text)
             
-            # Grounding check of date numbers in OCR
-            date_digits = "".join(re.findall(r"\d+", doc_date))
-            if date_digits:
-                norm_ocr = normalize_for_check(ocr_text)
-                if not any(part in norm_ocr for part in re.findall(r"\d+", doc_date)):
-                    issues.append({
-                        "field": "document_date",
-                        "message": f"Date digits from '{doc_date}' are not grounded in OCR text.",
-                        "severity": "warning"
-                    })
-                    penalties += 0.05
-
-        # 5. Money validation
-        subtotal = parse_float_amount(payload.get("subtotal"))
-        tax_amount = parse_float_amount(payload.get("tax_amount"))
-        total_amount = parse_float_amount(payload.get("total_amount"))
-
-        # Grounding checks for amounts
-        for field, amt in (("subtotal", subtotal), ("tax_amount", tax_amount), ("total_amount", total_amount)):
-            if amt is not None:
-                if not amount_exists_in_ocr(amt, ocr_text):
-                    issues.append({
-                        "field": field,
-                        "message": f"Amount '{amt}' for '{field}' not found in OCR text.",
-                        "severity": "warning"
-                    })
-                    penalties += 0.05
-            else:
+            is_empty = val is None or str(val).strip() in ("", "null", "None")
+            
+            if not exists_in_ocr:
+                state = "NOT_PRESENT_IN_SOURCE"
+                validation_status = "NOT_PRESENT_IN_SOURCE"
+                field_states[field] = state
+                print(f"Field: {field}")
+                print("OCR contains field: NO")
+                print("Validation: NOT_PRESENT_IN_SOURCE")
+                print("", flush=True)
+                continue
+                
+            # Field exists in OCR
+            if is_empty:
+                state = "NOT_EXTRACTED"
+                validation_status = "FAIL"
+                field_states[field] = state
+                
+                severity = "error" if field in ("document_number", "total_amount") else "warning"
                 issues.append({
                     "field": field,
-                    "message": f"Amount field '{field}' is missing or empty.",
-                    "severity": "warning"
+                    "message": f"Field '{field}' exists in OCR but was not extracted.",
+                    "severity": severity
                 })
-                penalties += 0.05
+                
+                # Penalize confidence
+                if field == "document_number":
+                    penalties += 0.2
+                elif field in ("vat_number", "document_date"):
+                    penalties += 0.15
+                else:
+                    penalties += 0.05
+                    
+                print(f"Field: {field}")
+                print("OCR contains field: YES")
+                print("OCR normalized value: Present in OCR")
+                print("LLM normalized value: Empty")
+                print("Validation: FAIL")
+                print("", flush=True)
+                continue
+                
+            # Field exists and is extracted
+            grounded = False
+            error_msg = ""
+            ocr_val_str = "Not found"
+            llm_val_str = str(val)
+            
+            # Numeric fields check
+            if field in ("subtotal", "tax_amount", "total_amount"):
+                num_val = normalize_number(val)
+                if num_val is None:
+                    grounded = False
+                    error_msg = f"Value '{val}' is not a valid number."
+                    llm_val_str = str(val)
+                else:
+                    grounded = amount_exists_in_ocr(num_val, ocr_text)
+                    error_msg = f"Amount '{num_val}' for '{field}' not found in OCR text."
+                    llm_val_str = str(num_val)
+                    if grounded:
+                        ocr_val_str = str(num_val)
+                    
+            # Date field check
+            elif field == "document_date":
+                if not is_valid_date(str(val)):
+                    grounded = False
+                    error_msg = f"Document date '{val}' is not a valid date format."
+                else:
+                    parts = re.findall(r"\d+", str(val))
+                    if parts:
+                        norm_ocr = normalize_for_check(ocr_text)
+                        grounded = any(part in norm_ocr for part in parts)
+                    else:
+                        grounded = False
+                    error_msg = f"Date digits from '{val}' are not grounded in OCR text."
+                    if grounded:
+                        ocr_val_str = str(val)
+                
+            # Currency check
+            elif field == "currency":
+                val_upper = str(val).strip().upper()
+                if val_upper == "SAR":
+                    grounded = any(term in ocr_text.lower() for term in ("sar", "riy", "ريال", "ر.س", "sr"))
+                else:
+                    grounded = normalize_for_check(str(val)) in normalize_for_check(ocr_text)
+                error_msg = f"Currency '{val}' is not grounded in OCR text."
+                if grounded:
+                    ocr_val_str = str(val)
+                
+            # Text/Name/Address checks
+            else:
+                grounded = normalize_for_check(str(val)) in normalize_for_check(ocr_text)
+                error_msg = f"Field '{field}' value '{val}' is not present in OCR text."
+                if grounded:
+                    ocr_val_str = str(val)
+                
+            if grounded:
+                state = "FOUND_AND_VALID"
+                validation_status = "PASS"
+            else:
+                state = "FOUND_BUT_INCORRECT"
+                validation_status = "FAIL"
+                
+                severity = "error" if field == "document_number" else "warning"
+                issues.append({
+                    "field": field,
+                    "message": error_msg,
+                    "severity": severity
+                })
+                
+                if field == "document_number":
+                    penalties += 0.2
+                elif field in ("vat_number", "document_date"):
+                    penalties += 0.15
+                else:
+                    penalties += 0.05
+                    
+            field_states[field] = state
+            
+            print(f"Field: {field}")
+            print("OCR contains field: YES")
+            print(f"OCR normalized value: {ocr_val_str}")
+            print(f"LLM normalized value: {llm_val_str}")
+            print(f"Validation: {validation_status}")
+            print("", flush=True)
 
-        # Math check
+        # 5. Math check
+        subtotal = normalize_number(get_field_value("subtotal"))
+        tax_amount = normalize_number(get_field_value("tax_amount"))
+        total_amount = normalize_number(get_field_value("total_amount"))
+        
         if subtotal is not None and tax_amount is not None and total_amount is not None:
             if abs((subtotal + tax_amount) - total_amount) > 0.05:
                 issues.append({
@@ -547,14 +678,40 @@ OCR TEXT:
                     "severity": "error"
                 })
                 penalties += 0.2
+                field_states["total_amount"] = "FOUND_BUT_INCORRECT"
+                print("Math validation: FAIL", flush=True)
+            else:
+                print("Math validation: PASS", flush=True)
+                
+        print("========================================================\n", flush=True)
 
-        # Final score
-        final_confidence = max(0.0, round(1.0 - penalties, 2))
+        # Confidence per field mapping
+        field_confidences = {}
+        for field, state in field_states.items():
+            if state == "FOUND_AND_VALID":
+                field_confidences[field] = 0.99 if field in ("subtotal", "tax_amount", "total_amount") else (0.98 if field == "document_date" else 0.97)
+            elif state == "NOT_PRESENT_IN_SOURCE":
+                field_confidences[field] = 1.00
+            elif state == "NOT_EXTRACTED":
+                field_confidences[field] = 0.10
+            elif state == "FOUND_BUT_INCORRECT":
+                field_confidences[field] = 0.40
+            else:
+                field_confidences[field] = 0.80
+
+        # Calculate overall confidence based on present fields
+        relevant_confs = [c for f, c in field_confidences.items() if field_states[f] != "NOT_PRESENT_IN_SOURCE"]
+        if relevant_confs:
+            final_confidence = round(sum(relevant_confs) / len(relevant_confs), 2)
+        else:
+            final_confidence = 1.00
 
         payload["_confidence"] = final_confidence
         validation_results = {
             "valid": len([i for i in issues if i["severity"] == "error"]) == 0,
             "issues": issues,
+            "field_states": field_states,
+            "field_confidences": field_confidences,
         }
         payload["_validation"] = validation_results
 

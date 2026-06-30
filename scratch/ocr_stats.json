@@ -1,0 +1,245 @@
+{
+  "1_BAHRA-CABLES-60129398.png": {
+    "raw_len": 1314,
+    "comp_len": 1434,
+    "header_len": 404,
+    "body_len": 339,
+    "footer_len": 604,
+    "tokens_used": 868,
+    "done_reason": "length"
+  },
+  "1_BAHRA-CABLES-60129398_9f2a8039864b.png": {
+    "raw_len": 1181,
+    "comp_len": 1301,
+    "header_len": 405,
+    "body_len": 339,
+    "footer_len": 470,
+    "tokens_used": 552,
+    "done_reason": "stop"
+  },
+  "1_BAHRA-CABLES-60129398_aa1188d31276.png": {
+    "raw_len": 1314,
+    "comp_len": 1434,
+    "header_len": 404,
+    "body_len": 339,
+    "footer_len": 604,
+    "tokens_used": 868,
+    "done_reason": "length"
+  },
+  "1_BAHRI-BOLLORE-JED301286.png": {
+    "raw_len": 2282,
+    "comp_len": 2402,
+    "header_len": 957,
+    "body_len": 473,
+    "footer_len": 885,
+    "tokens_used": 1068,
+    "done_reason": "length"
+  },
+  "1_BAIT-AL-BAKOURAH-50005.png": {
+    "raw_len": 816,
+    "comp_len": 903,
+    "header_len": 575,
+    "body_len": 7,
+    "footer_len": 234,
+    "tokens_used": 502,
+    "done_reason": "stop"
+  },
+  "1_BAIT-AL-BAKOURAH-50005_f604debc50ee.png": {
+    "raw_len": 822,
+    "comp_len": 909,
+    "header_len": 581,
+    "body_len": 7,
+    "footer_len": 234,
+    "tokens_used": 409,
+    "done_reason": "stop"
+  },
+  "1_CCS-CONSTRUCTION-COMPUTER-11341.png": {
+    "raw_len": 1879,
+    "comp_len": 1851,
+    "header_len": 611,
+    "body_len": 388,
+    "footer_len": 765,
+    "tokens_used": 652,
+    "done_reason": "stop"
+  },
+  "1_CONTRACTORS-AMBASSADOR-1738.png": {
+    "raw_len": 1358,
+    "comp_len": 1478,
+    "header_len": 402,
+    "body_len": 438,
+    "footer_len": 551,
+    "tokens_used": 623,
+    "done_reason": "stop"
+  },
+  "1_CPS-CONSTRUCTION-PLANT-490.png": {
+    "raw_len": 1538,
+    "comp_len": 1658,
+    "header_len": 329,
+    "body_len": 496,
+    "footer_len": 746,
+    "tokens_used": 641,
+    "done_reason": "stop"
+  },
+  "20220820_160723879.jpg": {
+    "raw_len": 567,
+    "comp_len": 688,
+    "header_len": 180,
+    "body_len": 314,
+    "footer_len": 107,
+    "tokens_used": 237,
+    "done_reason": "stop"
+  },
+  "20220820_160841493.jpg": {
+    "raw_len": 551,
+    "comp_len": 638,
+    "header_len": 195,
+    "body_len": 294,
+    "footer_len": 62,
+    "tokens_used": 344,
+    "done_reason": "stop"
+  },
+  "20220820_160954815.jpg": {
+    "raw_len": 848,
+    "comp_len": 935,
+    "header_len": 38,
+    "body_len": 246,
+    "footer_len": 564,
+    "tokens_used": 713,
+    "done_reason": "length"
+  },
+  "20220820_161037175.jpg": {
+    "raw_len": 1305,
+    "comp_len": 1392,
+    "header_len": 38,
+    "body_len": 142,
+    "footer_len": 1125,
+    "tokens_used": 571,
+    "done_reason": "length"
+  },
+  "4_JY2020-07-JV000603.png": {
+    "raw_len": 1248,
+    "comp_len": 1368,
+    "header_len": 256,
+    "body_len": 453,
+    "footer_len": 572,
+    "tokens_used": 821,
+    "done_reason": "length"
+  },
+  "4_JY2020-07-JV000603_033bb84135e8.png": {
+    "raw_len": 1454,
+    "comp_len": 1574,
+    "header_len": 256,
+    "body_len": 450,
+    "footer_len": 781,
+    "tokens_used": 818,
+    "done_reason": "length"
+  },
+  "4_JY2020-07-JV000710.png": {
+    "raw_len": 1196,
+    "comp_len": 1283,
+    "header_len": 531,
+    "body_len": 429,
+    "footer_len": 236,
+    "tokens_used": 821,
+    "done_reason": "length"
+  },
+  "4_JY2020-07-JV000738.png": {
+    "raw_len": 1235,
+    "comp_len": 1286,
+    "header_len": 532,
+    "body_len": 231,
+    "footer_len": 436,
+    "tokens_used": 876,
+    "done_reason": "length"
+  },
+  "4_JY2020-07-JV000738_1088f325b878.png": {
+    "raw_len": 1235,
+    "comp_len": 1286,
+    "header_len": 532,
+    "body_len": 231,
+    "footer_len": 436,
+    "tokens_used": 876,
+    "done_reason": "length"
+  },
+  "4_JY2020-07-JV000756.png": {
+    "raw_len": 1010,
+    "comp_len": 1130,
+    "header_len": 413,
+    "body_len": 357,
+    "footer_len": 273,
+    "tokens_used": 495,
+    "done_reason": "stop"
+  },
+  "1_BAHRA-CABLES-60129398_e1a0d6a4e55a.png": {
+    "raw_len": 1181,
+    "comp_len": 1301,
+    "header_len": 405,
+    "body_len": 339,
+    "footer_len": 470,
+    "tokens_used": 552,
+    "done_reason": "stop"
+  },
+  "1_BAHRA-CABLES-60129398_b742006d05d6.png": {
+    "raw_len": 1181,
+    "comp_len": 1301,
+    "header_len": 405,
+    "body_len": 339,
+    "footer_len": 470,
+    "tokens_used": 552,
+    "done_reason": "stop"
+  },
+  "1_BAHRA-CABLES-60129398_b0c40a67e4c5.png": {
+    "raw_len": 1181,
+    "comp_len": 1301,
+    "header_len": 405,
+    "body_len": 339,
+    "footer_len": 470,
+    "tokens_used": 552,
+    "done_reason": "stop"
+  },
+  "1_BAHRA-CABLES-60129398_0bace7e51fe7.png": {
+    "raw_len": 1181,
+    "comp_len": 1301,
+    "header_len": 405,
+    "body_len": 339,
+    "footer_len": 470,
+    "tokens_used": 552,
+    "done_reason": "stop"
+  },
+  "20220820_161037175_de52f5bda8c5.jpg": {
+    "raw_len": 1305,
+    "comp_len": 1392,
+    "header_len": 38,
+    "body_len": 142,
+    "footer_len": 1125,
+    "tokens_used": 571,
+    "done_reason": "length"
+  },
+  "1_BAHRI-BOLLORE-JED301286_d1e74ede6230.png": {
+    "raw_len": 2282,
+    "comp_len": 2402,
+    "header_len": 957,
+    "body_len": 473,
+    "footer_len": 885,
+    "tokens_used": 1068,
+    "done_reason": "length"
+  },
+  "1_CPS-CONSTRUCTION-PLANT-490_83476bd64da5.png": {
+    "raw_len": 1538,
+    "comp_len": 1658,
+    "header_len": 329,
+    "body_len": 496,
+    "footer_len": 746,
+    "tokens_used": 641,
+    "done_reason": "stop"
+  },
+  "4_JY2020-07-JV000603_b6872ee92e49.png": {
+    "raw_len": 1248,
+    "comp_len": 1368,
+    "header_len": 256,
+    "body_len": 453,
+    "footer_len": 572,
+    "tokens_used": 821,
+    "done_reason": "length"
+  }
+}

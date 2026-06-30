@@ -22,6 +22,7 @@ from database.crud import (
     list_recent_sessions,
     get_processing_session,
 )
+from database.repository import dashboard_metrics
 from database.db import SessionLocal
 from database.models import User, ProcessingSession, Document
 
@@ -48,6 +49,27 @@ def dashboard_page(request: Request):
             active_session = get_processing_session(session, active_session_id)
             if active_session:
                 documents = active_session.documents
+                # Pre-parse canonical fields and validation metrics
+                for doc in documents:
+                    try:
+                        ext = json.loads(doc.extracted_json or "{}")
+                    except Exception:
+                        ext = {}
+                    from services.export_service import map_to_canonical
+                    doc.canonical = map_to_canonical(ext)
+                    
+                    try:
+                        val = json.loads(doc.validation_result or "{}")
+                    except Exception:
+                        val = {}
+                    doc.field_confidences = val.get("field_confidences", {})
+                    doc.field_states = val.get("field_states", {})
+                
+                # Compute excel_filename for templates (avoids Jinja basename filter)
+                if active_session.excel_file_path:
+                    active_session.excel_filename = Path(active_session.excel_file_path).name
+                else:
+                    active_session.excel_filename = ""
             else:
                 return RedirectResponse(url="/dashboard", status_code=303)
                 
@@ -71,6 +93,7 @@ def dashboard_page(request: Request):
                 "documents": documents,
                 "excel_url": excel_url,
                 "active_page": "dashboard",
+                "metrics": dashboard_metrics(session),
             },
         )
 

@@ -185,6 +185,7 @@ def dashboard_metrics(session: Session) -> dict[str, Any]:
     approved = session.scalar(select(func.count(Document.id)).where(Document.status.in_(["approved", "Approved"]))) or 0
     pending = session.scalar(select(func.count(Document.id)).where(Document.status.in_(["pending_review", "in_review", "Needs Review"]))) or 0
     rejected = session.scalar(select(func.count(Document.id)).where(Document.status.in_(["rejected", "Rejected"]))) or 0
+    exported = session.scalar(select(func.count(Document.id)).where(Document.excel_file_path != "")) or 0
     avg_confidence = session.scalar(select(func.avg(Document.confidence))) or 0.0
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     documents_today = session.scalar(select(func.count(Document.id)).where(Document.created_at >= today_start)) or 0
@@ -196,6 +197,7 @@ def dashboard_metrics(session: Session) -> dict[str, Any]:
         "approved": approved,
         "pending_review": pending,
         "rejected": rejected,
+        "exported": exported,
         "average_confidence": round(float(avg_confidence), 2),
         "documents_today": documents_today,
         "extraction_accuracy": extraction_accuracy,

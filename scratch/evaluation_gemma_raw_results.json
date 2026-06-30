@@ -1,0 +1,1097 @@
+[
+  {
+    "filename": "1_BAHRA-CABLES-60129398.png",
+    "ocr_text": "Invoice TIN: 300140759700003 Date: 02.01.2019 Page: 1/4 Description الوصف Quantity Unit price Amt (SAR) VAT % Tax Price Total Price Customer: The Civil Works Joint Venture Of Saudi Arabian Bechtel Company, Almabani General Contractors and Consolidated Contractors Company W.LL BACS Building Malaz Riyadh Kingdom of Saudi Arabia- Al riyadh S.O # 30039828 D.N # 40132294 P. O # M-BCW-000SHG-CEGO-FOR0-00010 Date of Supply : 01.01.2019 Description الوصف Quantity Unit price Amt (SAR) VAT % Tax Price Total Price Customer: Bahra Advanced Cable Manufacturing Co. Ltd. White: Customer البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: لل",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\nInvoice TIN: 300140759700003 Date: 02.01.2019 Page: 1/4 Description الوصف Quantity Unit price Amt (SAR) VAT % Tax Price Total Price Customer: The Civil Works Joint Venture Of Saudi Arabian Bechtel Company, Almabani General Contractors and Consolidated Contractors Company W.LL BACS Building Malaz Riyadh Kingdom of Saudi Arabia- Al riyadh S.O # 30039828 D.N # 40132294 P. O # M-BCW-000SHG-CEGO-FOR0-00010 Date of Supply : 01.01.2019 Description الوصف Quantity Unit price Amt (SAR) VAT % Tax Price Total Price Customer: Bahra Advanced Cable Manufacturing Co. Ltd. White: Customer البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: للمليل البيضاء: لل",
+    "raw_gemma_response": "{\"document_number\": \"300140759700003\", \"vat_number\": null, \"document_date\": \"02.01.2019\", \"currency\": \"SAR\", \"vendor_name_ar\": \"\", \"vendor_name_en\": \"\", \"customer_name_ar\": \"\", \"customer_name_en\": \"Bahra Advanced Cable Manufacturing Co. Ltd.\", \"address_ar\": null, \"address_en\": null, \"subtotal\": null, \"tax_amount\": null, \"total_amount\": null}",
+    "parsed_json": {
+      "document_number": "300140759700003",
+      "vat_number": null,
+      "document_date": "02.01.2019",
+      "currency": "SAR",
+      "vendor_name_ar": "",
+      "vendor_name_en": "",
+      "customer_name_ar": "",
+      "customer_name_en": "Bahra Advanced Cable Manufacturing Co. Ltd.",
+      "address_ar": null,
+      "address_en": null,
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null
+    },
+    "final_json": {
+      "document_number": "300140759700003",
+      "vat_number": "",
+      "document_date": "02.01.2019",
+      "currency": "SAR",
+      "vendor_name_ar": "",
+      "vendor_name_en": "",
+      "customer_name_ar": "",
+      "customer_name_en": "Bahra Advanced Cable Manufacturing Co. Ltd.",
+      "address_ar": "",
+      "address_en": "",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null,
+      "_confidence": 0.7,
+      "_validation": {
+        "valid": true,
+        "issues": [
+          {
+            "field": "vat_number",
+            "message": "VAT number is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "subtotal",
+            "message": "Amount field 'subtotal' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "tax_amount",
+            "message": "Amount field 'tax_amount' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "total_amount",
+            "message": "Amount field 'total_amount' is missing or empty.",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 22.91779510001652,
+      "llm_time": 13.677294799941592,
+      "validation_time": 0.02870729996357113,
+      "total_time": 41.77477760007605
+    },
+    "confidence": 0.7
+  },
+  {
+    "filename": "1_BAHRI-BOLLORE-JED301286.png",
+    "ocr_text": "فترة مضربة رقم 1/2 TAX INVOICE JED301286 Due Date : 02/08/2018 Page 1 / 2 BAHRI BOLLORE LOGISTICS P.O. Box 9568 Jeddah 21423 Jeddah, Saudi Arabia Tel: +966 2 667 4695 / +966 12 669 3445 شركة بحري بولوريه لوجيستكس - جده جهة مكنى رقم V008 الفور الأول مكتب صب . ب : ٩٦٨ـ١٢٣٤-١٠٥٧-١١١٣-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\nفترة مضربة رقم 1/2 TAX INVOICE JED301286 Due Date : 02/08/2018 Page 1 / 2 BAHRI BOLLORE LOGISTICS P.O. Box 9568 Jeddah 21423 Jeddah, Saudi Arabia Tel: +966 2 667 4695 / +966 12 669 3445 شركة بحري بولوريه لوجيستكس - جده جهة مكنى رقم V008 الفور الأول مكتب صب . ب : ٩٦٨ـ١٢٣٤-١٠٥٧-١١١٣-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١٢٣٤-١٠٥٧-١٠٥٧-١٠٥٧-١٠٥٦-٢٠٤٨-٩٦٨ـ١",
+    "raw_gemma_response": "{\"document_number\": \"JED301286\", \"vat_number\": null, \"document_date\": \"\", \"currency\": null, \"vendor_name_ar\": \"شركة بحري بولوريه لوجيستكس\", \"vendor_name_en\": \"BAHRI BOLLORE LOGISTICS\", \"customer_name_ar\": null, \"customer_name_en\": null, \"address_ar\": \"جده جهة مكنى\", \"address_en\": \"Jeddah\", \"subtotal\": null, \"tax_amount\": null, \"total_amount\": null}",
+    "parsed_json": {
+      "document_number": "JED301286",
+      "vat_number": null,
+      "document_date": "",
+      "currency": null,
+      "vendor_name_ar": "شركة بحري بولوريه لوجيستكس",
+      "vendor_name_en": "BAHRI BOLLORE LOGISTICS",
+      "customer_name_ar": null,
+      "customer_name_en": null,
+      "address_ar": "جده جهة مكنى",
+      "address_en": "Jeddah",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null
+    },
+    "final_json": {
+      "document_number": "JED301286",
+      "vat_number": "",
+      "document_date": "",
+      "currency": "",
+      "vendor_name_ar": "شركة بحري بولوريه لوجيستكس",
+      "vendor_name_en": "BAHRI BOLLORE LOGISTICS",
+      "customer_name_ar": "",
+      "customer_name_en": "",
+      "address_ar": "جده جهة مكنى",
+      "address_en": "Jeddah",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null,
+      "_confidence": 0.55,
+      "_validation": {
+        "valid": true,
+        "issues": [
+          {
+            "field": "vat_number",
+            "message": "VAT number is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "document_date",
+            "message": "Document date is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "subtotal",
+            "message": "Amount field 'subtotal' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "tax_amount",
+            "message": "Amount field 'tax_amount' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "total_amount",
+            "message": "Amount field 'total_amount' is missing or empty.",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 14.101587799959816,
+      "llm_time": 12.42017900000792,
+      "validation_time": 0.001069099991582334,
+      "total_time": 31.81063089997042
+    },
+    "confidence": 0.55
+  },
+  {
+    "filename": "1_BAIT-AL-BAKOURAH-50005.png",
+    "ocr_text": "<!DOCTYPE html>\n<html lang=\"en\"><head>\n\n</head>\n<body data-bbox=\"0 0 999 998\">\n<div data-bbox=\"0 0 999 998\">\n<section data-bbox=\"0 0 999 12\">\n<h1 data-bbox=\"0 0 999 12\">مؤسسة بيت الباكورة للتجارة BAIT AL-BAKOURAH EST. FOR TRADING</h1> </section>\n<section data-bbox=\"0 14 999 386\">\n<div data-bbox=\"0 14 999 386\">\n<h2 data-bbox=\"0 14 999 25\">VAT INVOICE</h2> <div data-bbox=\"0 27 999 386\"><table data-bbox=\"0 27 999 386\" width=\"100%\">\n<tbody data-bbox=\"1 27 998 385\">\n<tr data-bbox=\"1 27 998 385\">\n<td data-bbox=\"1 27 998 385\"><table data-bbox=\"1 27 998 384\" width=\"100%\">\n<tbody data-bbox=\"2 27 997 383\">\n<tr data-bbox=\"2 27 997 383\">\n<td data-bbox=\"2 27 997 383\"><table data-bbox=\"2 27 997 383\" width=\"100%\">\n<tbody data-bbox=\"3 27 996 382\">\n<tr data-bbox=\"3 27 996 382\">\n<td data-bbox=\"3 27 996 382\"><table data-bbox=\"3 27 996 381\" width=\"100%\">\n<tbody data-bbox=\"4 27 995 381\">\n<tr data-bbox=\"4 27 995 381\">\n<td data-bbox=\"4 27 995 381\"><table data-bbox=\"4 27 995 380\" width=\"100%\">\n<tbody data-bbox=\"5 27 994 380\">\n<tr data-bbox=\"5 27 994 380\">\n<td data-bbox=\"5 27 994 380\"><table data-bbox=\"5 27 994 379\" width=\"100%\">\n<tbody data-bbox=\"6 27 993 379\">\n<tr data-bbox=\"6 27 993 379\">\n<td data-bbox=\"6 27 993 379\"><table data-bbox=\"6 27 993 378\" width=\"100%\">\n<tbody data-bbox=\"7 27 992 378\">\n<tr data-bbox=\"7 27 992 378\">\n<td data-bbox=\"7 27 992 378\"><table data-bbox=\"7 27 992 377\" width=\"100%\">\n<tbody data-bbox=\"8 27 991 377\">\n<tr data-bbox=\"8 27 991 377\">\n<td data-bbox=\"8 27 991 377\"><table data-bbox=\"8 27 991 376\" width=\"100%\">\n<tbody data-bbox=\"9 27 9",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\n<!DOCTYPE html>\n<html lang=\"en\"><head>\n\n</head>\n<body data-bbox=\"0 0 999 998\">\n<div data-bbox=\"0 0 999 998\">\n<section data-bbox=\"0 0 999 12\">\n<h1 data-bbox=\"0 0 999 12\">مؤسسة بيت الباكورة للتجارة BAIT AL-BAKOURAH EST. FOR TRADING</h1> </section>\n<section data-bbox=\"0 14 999 386\">\n<div data-bbox=\"0 14 999 386\">\n<h2 data-bbox=\"0 14 999 25\">VAT INVOICE</h2> <div data-bbox=\"0 27 999 386\"><table data-bbox=\"0 27 999 386\" width=\"100%\">\n<tbody data-bbox=\"1 27 998 385\">\n<tr data-bbox=\"1 27 998 385\">\n<td data-bbox=\"1 27 998 385\"><table data-bbox=\"1 27 998 384\" width=\"100%\">\n<tbody data-bbox=\"2 27 997 383\">\n<tr data-bbox=\"2 27 997 383\">\n<td data-bbox=\"2 27 997 383\"><table data-bbox=\"2 27 997 383\" width=\"100%\">\n<tbody data-bbox=\"3 27 996 382\">\n<tr data-bbox=\"3 27 996 382\">\n<td data-bbox=\"3 27 996 382\"><table data-bbox=\"3 27 996 381\" width=\"100%\">\n<tbody data-bbox=\"4 27 995 381\">\n<tr data-bbox=\"4 27 995 381\">\n<td data-bbox=\"4 27 995 381\"><table data-bbox=\"4 27 995 380\" width=\"100%\">\n<tbody data-bbox=\"5 27 994 380\">\n<tr data-bbox=\"5 27 994 380\">\n<td data-bbox=\"5 27 994 380\"><table data-bbox=\"5 27 994 379\" width=\"100%\">\n<tbody data-bbox=\"6 27 993 379\">\n<tr data-bbox=\"6 27 993 379\">\n<td data-bbox=\"6 27 993 379\"><table data-bbox=\"6 27 993 378\" width=\"100%\">\n<tbody data-bbox=\"7 27 992 378\">\n<tr data-bbox=\"7 27 992 378\">\n<td data-bbox=\"7 27 992 378\"><table data-bbox=\"7 27 992 377\" width=\"100%\">\n<tbody data-bbox=\"8 27 991 377\">\n<tr data-bbox=\"8 27 991 377\">\n<td data-bbox=\"8 27 991 377\"><table data-bbox=\"8 27 991 376\" width=\"100%\">\n<tbody data-bbox=\"9 27 9",
+    "raw_gemma_response": "{\"document_number\": null, \"vat_number\": null, \"document_date\": null, \"currency\": null, \"vendor_name_ar\": \"مؤسسة بيت الباكورة للتجارة\", \"vendor_name_en\": \"BAIT AL-BAKOURAH EST. FOR TRADING\", \"customer_name_ar\": null, \"customer_name_en\": null, \"address_ar\": null, \"address_en\": null, \"subtotal\": null, \"tax_amount\": null, \"total_amount\": null}",
+    "parsed_json": {
+      "document_number": null,
+      "vat_number": null,
+      "document_date": null,
+      "currency": null,
+      "vendor_name_ar": "مؤسسة بيت الباكورة للتجارة",
+      "vendor_name_en": "BAIT AL-BAKOURAH EST. FOR TRADING",
+      "customer_name_ar": null,
+      "customer_name_en": null,
+      "address_ar": null,
+      "address_en": null,
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null
+    },
+    "final_json": {
+      "document_number": "",
+      "vat_number": "",
+      "document_date": "",
+      "currency": "",
+      "vendor_name_ar": "مؤسسة بيت الباكورة للتجارة",
+      "vendor_name_en": "BAIT AL-BAKOURAH EST. FOR TRADING",
+      "customer_name_ar": "",
+      "customer_name_en": "",
+      "address_ar": "",
+      "address_en": "",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null,
+      "_confidence": 0.35,
+      "_validation": {
+        "valid": false,
+        "issues": [
+          {
+            "field": "document_number",
+            "message": "Invoice number is missing or empty.",
+            "severity": "error"
+          },
+          {
+            "field": "vat_number",
+            "message": "VAT number is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "document_date",
+            "message": "Document date is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "subtotal",
+            "message": "Amount field 'subtotal' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "tax_amount",
+            "message": "Amount field 'tax_amount' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "total_amount",
+            "message": "Amount field 'total_amount' is missing or empty.",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 15.93226379994303,
+      "llm_time": 15.708108099992387,
+      "validation_time": 0.003550700028426945,
+      "total_time": 36.73806230002083
+    },
+    "confidence": 0.35
+  },
+  {
+    "filename": "1_CCS-CONSTRUCTION-COMPUTER-11341.png",
+    "ocr_text": "Below is the plain text representation of the image for plain text conversion. Do not hallucinate.",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\nBelow is the plain text representation of the image for plain text conversion. Do not hallucinate.",
+    "raw_gemma_response": "{\"document_number\": null, \"vat_number\": null, \"document_date\": null, \"currency\": null, \"vendor_name_ar\": null, \"vendor_name_en\": null, \"customer_name_ar\": null, \"customer_name_en\": null, \"address_ar\": null, \"address_en\": null, \"subtotal\": null, \"tax_amount\": null, \"total_amount\": null}",
+    "parsed_json": {
+      "document_number": null,
+      "vat_number": null,
+      "document_date": null,
+      "currency": null,
+      "vendor_name_ar": null,
+      "vendor_name_en": null,
+      "customer_name_ar": null,
+      "customer_name_en": null,
+      "address_ar": null,
+      "address_en": null,
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null
+    },
+    "final_json": {
+      "document_number": "",
+      "vat_number": "",
+      "document_date": "",
+      "currency": "",
+      "vendor_name_ar": "",
+      "vendor_name_en": "",
+      "customer_name_ar": "",
+      "customer_name_en": "",
+      "address_ar": "",
+      "address_en": "",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null,
+      "_confidence": 0.35,
+      "_validation": {
+        "valid": false,
+        "issues": [
+          {
+            "field": "document_number",
+            "message": "Invoice number is missing or empty.",
+            "severity": "error"
+          },
+          {
+            "field": "vat_number",
+            "message": "VAT number is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "document_date",
+            "message": "Document date is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "subtotal",
+            "message": "Amount field 'subtotal' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "tax_amount",
+            "message": "Amount field 'tax_amount' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "total_amount",
+            "message": "Amount field 'total_amount' is missing or empty.",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 6.4599101999774575,
+      "llm_time": 7.843127499916591,
+      "validation_time": 0.0003964999923482537,
+      "total_time": 19.760461399913765
+    },
+    "confidence": 0.35
+  },
+  {
+    "filename": "1_CONTRACTORS-AMBASSADOR-1738.png",
+    "ocr_text": "VAT INVOICE فاتورة ضريبية اسم الشركة ، _ مؤسسة سفير المقاولين للتجارة عنوان:__ مخرج 17 - حي الفيصليه - شارع ابراهيم الزجاج __الرياض - المملكة العربية السعودية Address: CIVIL WORK JOINT VENTURE _ تأريخ الظاتورة ،_ 13-01-2019 Due Date: _ 1738 _ تاريخ التوريد،_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\nVAT INVOICE فاتورة ضريبية اسم الشركة ، _ مؤسسة سفير المقاولين للتجارة عنوان:__ مخرج 17 - حي الفيصليه - شارع ابراهيم الزجاج __الرياض - المملكة العربية السعودية Address: CIVIL WORK JOINT VENTURE _ تأريخ الظاتورة ،_ 13-01-2019 Due Date: _ 1738 _ تاريخ التوريد،_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _",
+    "raw_gemma_response": "{\"document_number\": null, \"vat_number\": null, \"document_date\": \"13-01-2019\", \"currency\": null, \"vendor_name_ar\": \"مؤسسة سفير المقاولين للتجارة\", \"vendor_name_en\": \"\", \"customer_name_ar\": null, \"customer_name_en\": null, \"address_ar\": \"مخرج 17 - حي الفيصليه - شارع ابراهيم الزجاج __الرياض - المملكة العربية السعودية\", \"address_en\": \"CIVIL WORK JOINT VENTURE\", \"subtotal\": null, \"tax_amount\": null, \"total_amount\": null}",
+    "parsed_json": {
+      "document_number": null,
+      "vat_number": null,
+      "document_date": "13-01-2019",
+      "currency": null,
+      "vendor_name_ar": "مؤسسة سفير المقاولين للتجارة",
+      "vendor_name_en": "",
+      "customer_name_ar": null,
+      "customer_name_en": null,
+      "address_ar": "مخرج 17 - حي الفيصليه - شارع ابراهيم الزجاج __الرياض - المملكة العربية السعودية",
+      "address_en": "CIVIL WORK JOINT VENTURE",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null
+    },
+    "final_json": {
+      "document_number": "",
+      "vat_number": "",
+      "document_date": "13-01-2019",
+      "currency": "",
+      "vendor_name_ar": "مؤسسة سفير المقاولين للتجارة",
+      "vendor_name_en": "",
+      "customer_name_ar": "",
+      "customer_name_en": "",
+      "address_ar": "مخرج 17 - حي الفيصليه - شارع ابراهيم الزجاج __الرياض - المملكة العربية السعودية",
+      "address_en": "CIVIL WORK JOINT VENTURE",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null,
+      "_confidence": 0.5,
+      "_validation": {
+        "valid": false,
+        "issues": [
+          {
+            "field": "document_number",
+            "message": "Invoice number is missing or empty.",
+            "severity": "error"
+          },
+          {
+            "field": "vat_number",
+            "message": "VAT number is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "subtotal",
+            "message": "Amount field 'subtotal' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "tax_amount",
+            "message": "Amount field 'tax_amount' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "total_amount",
+            "message": "Amount field 'total_amount' is missing or empty.",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 13.561850199941546,
+      "llm_time": 9.744985500001349,
+      "validation_time": 0.007869599969126284,
+      "total_time": 28.35453889996279
+    },
+    "confidence": 0.5
+  },
+  {
+    "filename": "1_CPS-CONSTRUCTION-PLANT-490.png",
+    "ocr_text": "For the account of Riyadh Metro Project, the Civil Works Joint Venture the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\nFor the account of Riyadh Metro Project, the Civil Works Joint Venture the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro Project, the Civil Works Joint Venture for the account of Riyadh Metro Project, the Civil Works Joint Venture For the account of Riyadh Metro",
+    "raw_gemma_response": "{\"document_number\": null,\"vat_number\": null,\"document_date\": null,\"currency\": null,\"vendor_name_ar\": null,\"vendor_name_en\": null,\"customer_name_ar\": null,\"customer_name_en\": \"Riyadh Metro Project, the Civil Works Joint Venture\",\"address_ar\": null,\"address_en\": null,\"subtotal\": null,\"tax_amount\": null,\"total_amount\": null}",
+    "parsed_json": {
+      "document_number": null,
+      "vat_number": null,
+      "document_date": null,
+      "currency": null,
+      "vendor_name_ar": null,
+      "vendor_name_en": null,
+      "customer_name_ar": null,
+      "customer_name_en": "Riyadh Metro Project, the Civil Works Joint Venture",
+      "address_ar": null,
+      "address_en": null,
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null
+    },
+    "final_json": {
+      "document_number": "",
+      "vat_number": "",
+      "document_date": "",
+      "currency": "",
+      "vendor_name_ar": "",
+      "vendor_name_en": "",
+      "customer_name_ar": "",
+      "customer_name_en": "Riyadh Metro Project, the Civil Works Joint Venture",
+      "address_ar": "",
+      "address_en": "",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null,
+      "_confidence": 0.35,
+      "_validation": {
+        "valid": false,
+        "issues": [
+          {
+            "field": "document_number",
+            "message": "Invoice number is missing or empty.",
+            "severity": "error"
+          },
+          {
+            "field": "vat_number",
+            "message": "VAT number is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "document_date",
+            "message": "Document date is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "subtotal",
+            "message": "Amount field 'subtotal' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "tax_amount",
+            "message": "Amount field 'tax_amount' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "total_amount",
+            "message": "Amount field 'total_amount' is missing or empty.",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 14.692537899944,
+      "llm_time": 11.963806099956855,
+      "validation_time": 0.0009048000210896134,
+      "total_time": 32.11969860002864
+    },
+    "confidence": 0.35
+  },
+  {
+    "filename": "20220820_160723879.jpg",
+    "ocr_text": "I-BAR T3 Unit of Anjali Hotels Pvt Ltd Check in area International Airport, Cochin, Kerala GST 32AACCA2654H1Z3 Name: Date: 20/07/22 Pick Up 22:02 Cashier: ANSHAL Bill No.: 1667 JOY Token No.: 157 Item Qty. Price Amount Tea 1 57.14 57.14 Cheese&Tomato 1 209.52 209.52 Sandwich Total Qty: 2 Sub Total 266.66 CGST 2.5% 6.67 SGST 2.5% 6.67 Grand Total 280.00 FSSAI Lic No. 10021807000007 Thanks Your feedback matters us most to improve ourselves. Please scan below to provide your feedback:",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\nI-BAR T3 Unit of Anjali Hotels Pvt Ltd Check in area International Airport, Cochin, Kerala GST 32AACCA2654H1Z3 Name: Date: 20/07/22 Pick Up 22:02 Cashier: ANSHAL Bill No.: 1667 JOY Token No.: 157 Item Qty. Price Amount Tea 1 57.14 57.14 Cheese&Tomato 1 209.52 209.52 Sandwich Total Qty: 2 Sub Total 266.66 CGST 2.5% 6.67 SGST 2.5% 6.67 Grand Total 280.00 FSSAI Lic No. 10021807000007 Thanks Your feedback matters us most to improve ourselves. Please scan below to provide your feedback:",
+    "raw_gemma_response": "{\"document_number\": \"1667\", \"vat_number\": null, \"document_date\": \"20/07/22\", \"currency\": null, \"vendor_name_ar\": null, \"vendor_name_en\": \"Anjali Hotels Pvt Ltd\", \"customer_name_ar\": null, \"customer_name_en\": \"I-BAR T3 Unit of Anjali Hotels Pvt Ltd\", \"address_ar\": null, \"address_en\": \"Check in area International Airport, Cochin, Kerala\", \"subtotal\": 266.66, \"tax_amount\": 13.34, \"total_amount\": 280.00}",
+    "parsed_json": {
+      "document_number": "1667",
+      "vat_number": null,
+      "document_date": "20/07/22",
+      "currency": null,
+      "vendor_name_ar": null,
+      "vendor_name_en": "Anjali Hotels Pvt Ltd",
+      "customer_name_ar": null,
+      "customer_name_en": "I-BAR T3 Unit of Anjali Hotels Pvt Ltd",
+      "address_ar": null,
+      "address_en": "Check in area International Airport, Cochin, Kerala",
+      "subtotal": 266.66,
+      "tax_amount": 13.34,
+      "total_amount": 280.0
+    },
+    "final_json": {
+      "document_number": "1667",
+      "vat_number": "",
+      "document_date": "20/07/22",
+      "currency": "",
+      "vendor_name_ar": "",
+      "vendor_name_en": "Anjali Hotels Pvt Ltd",
+      "customer_name_ar": "",
+      "customer_name_en": "I-BAR T3 Unit of Anjali Hotels Pvt Ltd",
+      "address_ar": "",
+      "address_en": "Check in area International Airport, Cochin, Kerala",
+      "subtotal": 266.66,
+      "tax_amount": 13.34,
+      "total_amount": 280.0,
+      "_confidence": 0.65,
+      "_validation": {
+        "valid": true,
+        "issues": [
+          {
+            "field": "vat_number",
+            "message": "VAT number is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "document_date",
+            "message": "Document date '20/07/22' is not a valid date.",
+            "severity": "warning"
+          },
+          {
+            "field": "tax_amount",
+            "message": "Amount '13.34' for 'tax_amount' not found in OCR text.",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 16.285442700027488,
+      "llm_time": 11.280910299974494,
+      "validation_time": 0.00788530008867383,
+      "total_time": 32.76487409998663
+    },
+    "confidence": 0.65
+  },
+  {
+    "filename": "20220820_160841493.jpg",
+    "ocr_text": "مطعم طريق المطار ابو حدري- علريق المطار الحفوفَ الشرقية 0556829522 فاتورة ضريبة مبسطة الرقم الضريبي : 310426975200003 Owner : النادل ------------------------------الـمجموع--------------- كـسة لحم مع رش 1 24 00 ايدام دجاج مع خبس شاسي ترك شاسي سادة 1 % بيبس- صغير ماء كبير 1 6 00 2 00 1 00 2.00 ------------------------------المجموع الفرعي : (المبلغ الاجمالي (بضون الضريبة ) : الضريبة قيمة المضافة : (المبلغ الإجمالي (مع الخـربية ) : المبلغ المستحق : المبلغ المستحق نفداً مجموع المبلغ(نقدا) 48.00 SAR 41.74 SAR 6.26 SAR 48.00 SAR 48.00 SAR 48.00 SAR 48.00 SAR 48.00 SAR 48.00 SAR 48.00 SAR 48.00 SAR 48.00 SAR 21/07/2022 1:04:40 PM 21/07/2022 1:04:44 PM Thank you نسخة العميل الفاتورة الإلكترونية QR",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\nمطعم طريق المطار ابو حدري- علريق المطار الحفوفَ الشرقية 0556829522 فاتورة ضريبة مبسطة الرقم الضريبي : 310426975200003 Owner : النادل ------------------------------الـمجموع--------------- كـسة لحم مع رش 1 24 00 ايدام دجاج مع خبس شاسي ترك شاسي سادة 1 % بيبس- صغير ماء كبير 1 6 00 2 00 1 00 2.00 ------------------------------المجموع الفرعي : (المبلغ الاجمالي (بضون الضريبة ) : الضريبة قيمة المضافة : (المبلغ الإجمالي (مع الخـربية ) : المبلغ المستحق : المبلغ المستحق نفداً مجموع المبلغ(نقدا) 48.00 SAR 41.74 SAR 6.26 SAR 48.00 SAR 48.00 SAR 48.00 SAR 48.00 SAR 48.00 SAR 48.00 SAR 48.00 SAR 48.00 SAR 48.00 SAR 21/07/2022 1:04:40 PM 21/07/2022 1:04:44 PM Thank you نسخة العميل الفاتورة الإلكترونية QR",
+    "raw_gemma_response": "{\"document_number\": null, \"vat_number\": \"310426975200003\", \"document_date\": \"21/07/2022\", \"currency\": \"SAR\", \"vendor_name_ar\": \"مطعم طريق المطار ابو حدري- علريق المطار الحفوفَ الشرقية\", \"vendor_name_en\": null, \"customer_name_ar\": null, \"customer_name_en\": null, \"address_ar\": null, \"address_en\": null, \"subtotal\": 41.74, \"tax_amount\": 6.26, \"total_amount\": 48.00}",
+    "parsed_json": {
+      "document_number": null,
+      "vat_number": "310426975200003",
+      "document_date": "21/07/2022",
+      "currency": "SAR",
+      "vendor_name_ar": "مطعم طريق المطار ابو حدري- علريق المطار الحفوفَ الشرقية",
+      "vendor_name_en": null,
+      "customer_name_ar": null,
+      "customer_name_en": null,
+      "address_ar": null,
+      "address_en": null,
+      "subtotal": 41.74,
+      "tax_amount": 6.26,
+      "total_amount": 48.0
+    },
+    "final_json": {
+      "document_number": "",
+      "vat_number": "310426975200003",
+      "document_date": "21/07/2022",
+      "currency": "SAR",
+      "vendor_name_ar": "مطعم طريق المطار ابو حدري- علريق المطار الحفوفَ الشرقية",
+      "vendor_name_en": "",
+      "customer_name_ar": "",
+      "customer_name_en": "",
+      "address_ar": "",
+      "address_en": "",
+      "subtotal": 41.74,
+      "tax_amount": 6.26,
+      "total_amount": 48.0,
+      "_confidence": 0.8,
+      "_validation": {
+        "valid": false,
+        "issues": [
+          {
+            "field": "document_number",
+            "message": "Invoice number is missing or empty.",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 7.953710100031458,
+      "llm_time": 8.196494800038636,
+      "validation_time": 0.001975800027139485,
+      "total_time": 20.970401900005527
+    },
+    "confidence": 0.8
+  },
+  {
+    "filename": "20220820_160954815.jpg",
+    "ocr_text": "{TAXI AIRPORT SERVICE} خدمات أجرة المطار S.R. ريال 14-0 فاتورة INVOICE من المطار الدمام Dammam Airport استلمت من السيد / السادة ...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\n{TAXI AIRPORT SERVICE} خدمات أجرة المطار S.R. ريال 14-0 فاتورة INVOICE من المطار الدمام Dammam Airport استلمت من السيد / السادة ...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م...م",
+    "raw_gemma_response": "{\"document_number\": \"\", \"vat_number\": null, \"document_date\": null, \"currency\": \"S.R.\", \"vendor_name_ar\": null, \"vendor_name_en\": null, \"customer_name_ar\": null, \"customer_name_en\": null, \"address_ar\": null, \"address_en\": null, \"subtotal\": null, \"tax_amount\": null, \"total_amount\": null}",
+    "parsed_json": {
+      "document_number": "",
+      "vat_number": null,
+      "document_date": null,
+      "currency": "S.R.",
+      "vendor_name_ar": null,
+      "vendor_name_en": null,
+      "customer_name_ar": null,
+      "customer_name_en": null,
+      "address_ar": null,
+      "address_en": null,
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null
+    },
+    "final_json": {
+      "document_number": "",
+      "vat_number": "",
+      "document_date": "",
+      "currency": "S.R.",
+      "vendor_name_ar": "",
+      "vendor_name_en": "",
+      "customer_name_ar": "",
+      "customer_name_en": "",
+      "address_ar": "",
+      "address_en": "",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null,
+      "_confidence": 0.35,
+      "_validation": {
+        "valid": false,
+        "issues": [
+          {
+            "field": "document_number",
+            "message": "Invoice number is missing or empty.",
+            "severity": "error"
+          },
+          {
+            "field": "vat_number",
+            "message": "VAT number is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "document_date",
+            "message": "Document date is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "subtotal",
+            "message": "Amount field 'subtotal' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "tax_amount",
+            "message": "Amount field 'tax_amount' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "total_amount",
+            "message": "Amount field 'total_amount' is missing or empty.",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 12.205535599961877,
+      "llm_time": 6.976512699970044,
+      "validation_time": 0.0008856999920681119,
+      "total_time": 23.953526800032705
+    },
+    "confidence": 0.35
+  },
+  {
+    "filename": "20220820_161037175.jpg",
+    "ocr_text": "Taxi Airport Service ـ خدمات أجرة المطار S.R. ريال 240 فاتورة INVOICE To: Dammam Airport استلمت من السيد / السادة ...السيد ...والسيد ...مبلغ وقدره ...ملبس ...و...مصدقة ...التاريخ : ١٤-٥-٢٠ Date : ١٤-٦-٢٠ Receiver Sig.",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\nTaxi Airport Service ـ خدمات أجرة المطار S.R. ريال 240 فاتورة INVOICE To: Dammam Airport استلمت من السيد / السادة ...السيد ...والسيد ...مبلغ وقدره ...ملبس ...و...مصدقة ...التاريخ : ١٤-٥-٢٠ Date : ١٤-٦-٢٠ Receiver Sig.",
+    "raw_gemma_response": "{\"document_number\": \"INVOICE\", \"vat_number\": null, \"document_date\": \"14-6-20\", \"currency\": \"S.R.\", \"vendor_name_ar\": \"Taxi Airport Service ـ خدمات أجرة المطار\", \"vendor_name_en\": \"Taxi Airport Service\", \"customer_name_ar\": \"\", \"customer_name_en\": \"Dammam Airport\", \"address_ar\": null, \"address_en\": null, \"subtotal\": null, \"tax_amount\": null, \"total_amount\": \"240\"}",
+    "parsed_json": {
+      "document_number": "INVOICE",
+      "vat_number": null,
+      "document_date": "14-6-20",
+      "currency": "S.R.",
+      "vendor_name_ar": "Taxi Airport Service ـ خدمات أجرة المطار",
+      "vendor_name_en": "Taxi Airport Service",
+      "customer_name_ar": "",
+      "customer_name_en": "Dammam Airport",
+      "address_ar": null,
+      "address_en": null,
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": "240"
+    },
+    "final_json": {
+      "document_number": "INVOICE",
+      "vat_number": "",
+      "document_date": "14-6-20",
+      "currency": "S.R.",
+      "vendor_name_ar": "Taxi Airport Service ـ خدمات أجرة المطار",
+      "vendor_name_en": "Taxi Airport Service",
+      "customer_name_ar": "",
+      "customer_name_en": "Dammam Airport",
+      "address_ar": "",
+      "address_en": "",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": "240",
+      "_confidence": 0.55,
+      "_validation": {
+        "valid": true,
+        "issues": [
+          {
+            "field": "vat_number",
+            "message": "VAT number is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "document_date",
+            "message": "Document date '14-6-20' is not a valid date.",
+            "severity": "warning"
+          },
+          {
+            "field": "document_date",
+            "message": "Date digits from '14-6-20' are not grounded in OCR text.",
+            "severity": "warning"
+          },
+          {
+            "field": "subtotal",
+            "message": "Amount field 'subtotal' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "tax_amount",
+            "message": "Amount field 'tax_amount' is missing or empty.",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 5.759803599910811,
+      "llm_time": 7.306312799919397,
+      "validation_time": 0.010897799977101386,
+      "total_time": 17.87255049997475
+    },
+    "confidence": 0.55
+  },
+  {
+    "filename": "4_JY2020-07-JV000603.png",
+    "ocr_text": "هـــــــــــــــــــــــــــــــ",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\nهـــــــــــــــــــــــــــــــ",
+    "raw_gemma_response": "{\"document_number\": null, \"vat_number\": null, \"document_date\": null, \"currency\": null, \"vendor_name_ar\": null, \"vendor_name_en\": null, \"customer_name_ar\": null, \"customer_name_en\": null, \"address_ar\": null, \"address_en\": null, \"subtotal\": null, \"tax_amount\": null, \"total_amount\": null}",
+    "parsed_json": {
+      "document_number": null,
+      "vat_number": null,
+      "document_date": null,
+      "currency": null,
+      "vendor_name_ar": null,
+      "vendor_name_en": null,
+      "customer_name_ar": null,
+      "customer_name_en": null,
+      "address_ar": null,
+      "address_en": null,
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null
+    },
+    "final_json": {
+      "document_number": "",
+      "vat_number": "",
+      "document_date": "",
+      "currency": "",
+      "vendor_name_ar": "",
+      "vendor_name_en": "",
+      "customer_name_ar": "",
+      "customer_name_en": "",
+      "address_ar": "",
+      "address_en": "",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null,
+      "_confidence": 0.35,
+      "_validation": {
+        "valid": false,
+        "issues": [
+          {
+            "field": "document_number",
+            "message": "Invoice number is missing or empty.",
+            "severity": "error"
+          },
+          {
+            "field": "vat_number",
+            "message": "VAT number is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "document_date",
+            "message": "Document date is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "subtotal",
+            "message": "Amount field 'subtotal' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "tax_amount",
+            "message": "Amount field 'tax_amount' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "total_amount",
+            "message": "Amount field 'total_amount' is missing or empty.",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 6.2811499000526965,
+      "llm_time": 7.899308699998073,
+      "validation_time": 0.00022679998073726892,
+      "total_time": 18.913720500073396
+    },
+    "confidence": 0.35
+  },
+  {
+    "filename": "4_JY2020-07-JV000603_033bb84135e8.png",
+    "ocr_text": "هـــــــــــــــــــــــــــــــ",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\nهـــــــــــــــــــــــــــــــ",
+    "raw_gemma_response": "{\"document_number\": null, \"vat_number\": null, \"document_date\": null, \"currency\": null, \"vendor_name_ar\": null, \"vendor_name_en\": null, \"customer_name_ar\": null, \"customer_name_en\": null, \"address_ar\": null, \"address_en\": null, \"subtotal\": null, \"tax_amount\": null, \"total_amount\": null}",
+    "parsed_json": {
+      "document_number": null,
+      "vat_number": null,
+      "document_date": null,
+      "currency": null,
+      "vendor_name_ar": null,
+      "vendor_name_en": null,
+      "customer_name_ar": null,
+      "customer_name_en": null,
+      "address_ar": null,
+      "address_en": null,
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null
+    },
+    "final_json": {
+      "document_number": "",
+      "vat_number": "",
+      "document_date": "",
+      "currency": "",
+      "vendor_name_ar": "",
+      "vendor_name_en": "",
+      "customer_name_ar": "",
+      "customer_name_en": "",
+      "address_ar": "",
+      "address_en": "",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null,
+      "_confidence": 0.35,
+      "_validation": {
+        "valid": false,
+        "issues": [
+          {
+            "field": "document_number",
+            "message": "Invoice number is missing or empty.",
+            "severity": "error"
+          },
+          {
+            "field": "vat_number",
+            "message": "VAT number is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "document_date",
+            "message": "Document date is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "subtotal",
+            "message": "Amount field 'subtotal' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "tax_amount",
+            "message": "Amount field 'tax_amount' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "total_amount",
+            "message": "Amount field 'total_amount' is missing or empty.",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 4.6811249000020325,
+      "llm_time": 6.810475499951281,
+      "validation_time": 0.00031230004969984293,
+      "total_time": 16.38693040004
+    },
+    "confidence": 0.35
+  },
+  {
+    "filename": "4_JY2020-07-JV000710.png",
+    "ocr_text": "**THIS INVOICE IS RELTAED TO SAP INVOICE NUMBER 901840429 ** فاتوره مبيعات / Sales Invoice التاريخ 18.03.2020 Revenue Number 901840429 901840429 Date 18.03.2020 Invoice Number P.O.Box / P.Code / City ص.ب/ الرمز البريدي/ المدينة 301/11411/Riyadh Tel. Fax. VAT Registration Number Customer Name Customer No SABCO ALMABANI CCC WILL PACKAGE NO. 1 P.O.Box / P.Code / City ص.ب/ الرمز البريدي/ المدينة +966 11 510 5600 +966 11 510 5601 P.O. Box 28708, Riyadh 11447 P.O. Box 28708, Riyadh 11447 Customer Name SABCO ALMABANI CCC WILL PACKAGE NO. 1 P.O.Box / P.Code / City ص.ب/ الرمز البريدي/ المدينة +966 11 510 5600 +966 11 510 5601 P.O. Box 28708, Riyadh 11447 P.O. Box 28708, Riyadh 11447 VAT Registration Number Purchase Order NO M-BCW-000TR0-CE00-FOR0-00076 S/N Description QTY Unit Price Total Price السعر الاجمالي للخدمة % السعر الجنيه للخدمة % السعر الاجمالي للفاتوره بدون الضريبة % الفيضة الاجمالية للفاتورة مع الضريبة 50 40 5X10MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 989.00 25.25 329,472.67 50 41 5X10MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 993.00 25.25 329,472.67 50 42 5X10MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 1,032.00 25.25 329,472.67 50 43 5X10MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 1,010.00 25.25 329,472.67 50 44 5X10MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 987.00 25.25 329,472.67 50 45 5X10MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 971.00 25.25 329,472.67 50 50 5X16MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 993.00 25.25 329,472.67 50 51 5X16MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 1,032.00 25.25 329",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\n**THIS INVOICE IS RELTAED TO SAP INVOICE NUMBER 901840429 ** فاتوره مبيعات / Sales Invoice التاريخ 18.03.2020 Revenue Number 901840429 901840429 Date 18.03.2020 Invoice Number P.O.Box / P.Code / City ص.ب/ الرمز البريدي/ المدينة 301/11411/Riyadh Tel. Fax. VAT Registration Number Customer Name Customer No SABCO ALMABANI CCC WILL PACKAGE NO. 1 P.O.Box / P.Code / City ص.ب/ الرمز البريدي/ المدينة +966 11 510 5600 +966 11 510 5601 P.O. Box 28708, Riyadh 11447 P.O. Box 28708, Riyadh 11447 Customer Name SABCO ALMABANI CCC WILL PACKAGE NO. 1 P.O.Box / P.Code / City ص.ب/ الرمز البريدي/ المدينة +966 11 510 5600 +966 11 510 5601 P.O. Box 28708, Riyadh 11447 P.O. Box 28708, Riyadh 11447 VAT Registration Number Purchase Order NO M-BCW-000TR0-CE00-FOR0-00076 S/N Description QTY Unit Price Total Price السعر الاجمالي للخدمة % السعر الجنيه للخدمة % السعر الاجمالي للفاتوره بدون الضريبة % الفيضة الاجمالية للفاتورة مع الضريبة 50 40 5X10MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 989.00 25.25 329,472.67 50 41 5X10MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 993.00 25.25 329,472.67 50 42 5X10MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 1,032.00 25.25 329,472.67 50 43 5X10MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 1,010.00 25.25 329,472.67 50 44 5X10MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 987.00 25.25 329,472.67 50 45 5X10MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 971.00 25.25 329,472.67 50 50 5X16MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 993.00 25.25 329,472.67 50 51 5X16MM2 CU/MICA/XLPE/SWA/LSHF-(N,B,E,L,Q) 1,032.00 25.25 329",
+    "raw_gemma_response": "{\"document_number\": \"901840429\", \"vat_number\": null, \"document_date\": \"18.03.2020\", \"currency\": \"\", \"vendor_name_ar\": \"\", \"vendor_name_en\": \"\", \"customer_name_ar\": \"\", \"customer_name_en\": \"SABCO ALMABANI CCC WILL PACKAGE NO. 1\", \"address_ar\": null, \"address_en\": \"P.O. Box 28708, Riyadh 11447\", \"subtotal\": null, \"tax_amount\": null, \"total_amount\": null}",
+    "parsed_json": {
+      "document_number": "901840429",
+      "vat_number": null,
+      "document_date": "18.03.2020",
+      "currency": "",
+      "vendor_name_ar": "",
+      "vendor_name_en": "",
+      "customer_name_ar": "",
+      "customer_name_en": "SABCO ALMABANI CCC WILL PACKAGE NO. 1",
+      "address_ar": null,
+      "address_en": "P.O. Box 28708, Riyadh 11447",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null
+    },
+    "final_json": {
+      "document_number": "901840429",
+      "vat_number": "",
+      "document_date": "18.03.2020",
+      "currency": "",
+      "vendor_name_ar": "",
+      "vendor_name_en": "",
+      "customer_name_ar": "",
+      "customer_name_en": "SABCO ALMABANI CCC WILL PACKAGE NO. 1",
+      "address_ar": "",
+      "address_en": "P.O. Box 28708, Riyadh 11447",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null,
+      "_confidence": 0.7,
+      "_validation": {
+        "valid": true,
+        "issues": [
+          {
+            "field": "vat_number",
+            "message": "VAT number is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "subtotal",
+            "message": "Amount field 'subtotal' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "tax_amount",
+            "message": "Amount field 'tax_amount' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "total_amount",
+            "message": "Amount field 'total_amount' is missing or empty.",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 12.368146699969657,
+      "llm_time": 7.990268399938941,
+      "validation_time": 0.0015653000446036458,
+      "total_time": 25.134376000030898
+    },
+    "confidence": 0.7
+  },
+  {
+    "filename": "4_JY2020-07-JV000738.png",
+    "ocr_text": "<!DOCTYPE html>\n<html><head> </head> <body> <div data-bbox=\"0 0 999 998\"> <h1 data-bbox=\"265 437 734 442\">SODAMCO Industrial Company for Construction Chemicals W.L.L. </h1> <p data-bbox=\"265 444 734 450\"><strong data-bbox=\"265 444 389 448\">Sulay Area – Exit 18, Istanbul road, Facing Train station</strong><br/> T +966 11 473 j751 F +966 11 472 5339<br/> Central Region , Riyadh VAT No. : 300128604300003 C.R. : 4030168494</p> <h2 data-bbox=\"265 452 734\">شركة سودامكو الصناعية لكيمواويات البناة ز.م.م.سني-مخرع-18،طريق اسطنبول،سفحل محطة الفطار-رينز الرقم الضريبي : 02-33333333 سجل تماري رقم : 1549117614-14-0000001</h2> <p data-bbox=\"265 458 734\">Client : Lebanon ،UAE ، Syria ، Qatar ، KSA ، Jordan ، Kuwait ، Oman Description - الوصف - </p> <p data-bbox=\"265 460 734\">Date - تاريخ - Agent - ممثل - CRM - السجل التجاري - VAT - الرقم الضريبي - Customer Ref No - العنوان - العنوان - Riyadh،الملز، شارع الاحساء مبنى اليكس : +966 115 105 600 </p> <h2 data-bbox=\"265 473 734\">المشروع المشترك لشركة بكلل العربية والمياني وإنحداد المفاوولن- V.C.W.J.L.V </h2> <p data-bbox=\"265 479 734\">webertec 311 MC -A+B- (38 Kg) (ويبيرتك 311 م سي - أ + بي(38 كغ ) webertec 301 (25 Kg) (ويبيرتك 301 (25 كغ ) </p> <h2 data-bbox=\"265 492 734\">Maturity date - تاريخ الإستحقاق - Warehouse - مخزن - </h2> <p data-bbox=\"265 498 734\">Total Before VAT : 1,501.500 SAR Total After VAT : 1,501.500 SAR Net to Pay : 1,576.575 SAR </p> <h2 data-bbox=\"265 508 734\">Remark - ملحوظة - </h2> <p data-bbox=\"265 514 734\">SAR ONE THOUSAND FIVE HUNDRED SEVENTY-SIX AND 575 / 1000 ONLY Based On Sales Orders 220012125. Based On Deliveries 200025348.</p> <h3 data-bbox=\"265 529 734\">Delivered By - اصدرت بواسطة RUH</h3> <h3",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\n<!DOCTYPE html>\n<html><head> </head> <body> <div data-bbox=\"0 0 999 998\"> <h1 data-bbox=\"265 437 734 442\">SODAMCO Industrial Company for Construction Chemicals W.L.L. </h1> <p data-bbox=\"265 444 734 450\"><strong data-bbox=\"265 444 389 448\">Sulay Area – Exit 18, Istanbul road, Facing Train station</strong><br/> T +966 11 473 j751 F +966 11 472 5339<br/> Central Region , Riyadh VAT No. : 300128604300003 C.R. : 4030168494</p> <h2 data-bbox=\"265 452 734\">شركة سودامكو الصناعية لكيمواويات البناة ز.م.م.سني-مخرع-18،طريق اسطنبول،سفحل محطة الفطار-رينز الرقم الضريبي : 02-33333333 سجل تماري رقم : 1549117614-14-0000001</h2> <p data-bbox=\"265 458 734\">Client : Lebanon ،UAE ، Syria ، Qatar ، KSA ، Jordan ، Kuwait ، Oman Description - الوصف - </p> <p data-bbox=\"265 460 734\">Date - تاريخ - Agent - ممثل - CRM - السجل التجاري - VAT - الرقم الضريبي - Customer Ref No - العنوان - العنوان - Riyadh،الملز، شارع الاحساء مبنى اليكس : +966 115 105 600 </p> <h2 data-bbox=\"265 473 734\">المشروع المشترك لشركة بكلل العربية والمياني وإنحداد المفاوولن- V.C.W.J.L.V </h2> <p data-bbox=\"265 479 734\">webertec 311 MC -A+B- (38 Kg) (ويبيرتك 311 م سي - أ + بي(38 كغ ) webertec 301 (25 Kg) (ويبيرتك 301 (25 كغ ) </p> <h2 data-bbox=\"265 492 734\">Maturity date - تاريخ الإستحقاق - Warehouse - مخزن - </h2> <p data-bbox=\"265 498 734\">Total Before VAT : 1,501.500 SAR Total After VAT : 1,501.500 SAR Net to Pay : 1,576.575 SAR </p> <h2 data-bbox=\"265 508 734\">Remark - ملحوظة - </h2> <p data-bbox=\"265 514 734\">SAR ONE THOUSAND FIVE HUNDRED SEVENTY-SIX AND 575 / 1000 ONLY Based On Sales Orders 220012125. Based On Deliveries 200025348.</p> <h3 data-bbox=\"265 529 734\">Delivered By - اصدرت بواسطة RUH</h3> <h3",
+    "raw_gemma_response": "{\"document_number\": \"220012125\", \"vat_number\": \"300128604300003\", \"document_date\": null, \"currency\": \"SAR\", \"vendor_name_ar\": \"شركة سودامكو الصناعية لكيمواويات البناة ز.م.م.\", \"vendor_name_en\": \"SODAMCO Industrial Company for Construction Chemicals W.L.L.\", \"customer_name_ar\": \"\", \"customer_name_en\": \"\", \"address_ar\": null, \"address_en\": \"Sulay Area – Exit 18, Istanbul road, Facing Train station\", \"subtotal\": 1501.5, \"tax_amount\": null, \"total_amount\": 1576.575}",
+    "parsed_json": {
+      "document_number": "220012125",
+      "vat_number": "300128604300003",
+      "document_date": null,
+      "currency": "SAR",
+      "vendor_name_ar": "شركة سودامكو الصناعية لكيمواويات البناة ز.م.م.",
+      "vendor_name_en": "SODAMCO Industrial Company for Construction Chemicals W.L.L.",
+      "customer_name_ar": "",
+      "customer_name_en": "",
+      "address_ar": null,
+      "address_en": "Sulay Area – Exit 18, Istanbul road, Facing Train station",
+      "subtotal": 1501.5,
+      "tax_amount": null,
+      "total_amount": 1576.575
+    },
+    "final_json": {
+      "document_number": "220012125",
+      "vat_number": "300128604300003",
+      "document_date": "",
+      "currency": "SAR",
+      "vendor_name_ar": "شركة سودامكو الصناعية لكيمواويات البناة ز.م.م.",
+      "vendor_name_en": "SODAMCO Industrial Company for Construction Chemicals W.L.L.",
+      "customer_name_ar": "",
+      "customer_name_en": "",
+      "address_ar": "",
+      "address_en": "Sulay Area – Exit 18, Istanbul road, Facing Train station",
+      "subtotal": 1501.5,
+      "tax_amount": null,
+      "total_amount": 1576.575,
+      "_confidence": 0.75,
+      "_validation": {
+        "valid": true,
+        "issues": [
+          {
+            "field": "document_date",
+            "message": "Document date is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "tax_amount",
+            "message": "Amount field 'tax_amount' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "total_amount",
+            "message": "Amount '1576.575' for 'total_amount' not found in OCR text.",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 13.547721300041303,
+      "llm_time": 13.553107300074771,
+      "validation_time": 0.004404400009661913,
+      "total_time": 32.40823800000362
+    },
+    "confidence": 0.75
+  },
+  {
+    "filename": "4_JY2020-07-JV000756.png",
+    "ocr_text": "申しطع ـ مركز تسويق ـ أنظمة الأنابيب السعودي س.ت : 101-43928 P.O. Box : 52408 - Riyadh : 11563 Tel.: 011 4826006 - Fax : 011 4828742 VAT No.: 300041254700003 ـ ( ) أنظمة أنابيب متكاملة ( ) Pipe Fittings Stockist ـ رقم الأم رؤساء ORDER NO. ـ المشروع المشترك للاعمال المدني ـ اسم العميل CUST NAME ـ سعر الوحدة UNIT PRICE ـ رم ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب ال",
+    "prompt": "You are a highly accurate invoice extraction engine.\n\nYour job is to extract structured information from OCR text.\n\nYou MUST return ONLY valid JSON.\nNever explain.\nNever use markdown.\nNever include comments.\nNever include code blocks.\nNever return anything except the JSON object.\n\nGENERAL RULES:\nThe OCR text may contain:\n- Arabic\n- English\n- Mixed Arabic and English\n- Tables\n- Product descriptions\n- Headers\n- Footers\n- Phone numbers\n- VAT numbers\n- CR numbers\n- PO numbers\n\nYour job is to identify ONLY the requested invoice entities.\nNever guess.\nIf uncertain, return an empty string or null.\n\nVERY IMPORTANT:\nFor every field, return ONLY the value.\nNever include labels.\nNever include neighbouring lines.\nNever include surrounding paragraphs.\n\nExample:\nOCR:\nVendor Name\nABC Trading Company\nPO Box 123\n\nCorrect:\n\"vendor_name_en\": \"ABC Trading Company\"\n\nWrong:\n\"vendor_name_en\": \"Vendor Name\\nABC Trading Company\\nPO Box 123\"\n\nDOCUMENT NUMBER:\nChoose ONLY the actual invoice number.\nIgnore:\n- Revenue Number\n- Customer Number\n- CR Number\n- PO Number\n- Delivery Number\n- Reference Number\n- Serial Number\n- Item Code\n- Product Code\nIf the invoice number is empty on the document, return \"\".\nNever guess.\n\nVENDOR:\nReturn ONLY the company name.\nDo NOT include:\n- Address\n- Phone\n- Fax\n- VAT\n- Email\n- Website\n- PO Box\n\nCorrect: ABC Trading Company\nWrong:\nABC Trading Company\nPO Box 123\nRiyadh\nSaudi Arabia\n\nCUSTOMER:\nReturn ONLY the customer name.\nNever include:\n- Address\n- PO Box\n- VAT\n- Reference\n- Invoice Number\n\nADDRESS:\nReturn ONLY the address.\nDo not include:\n- Vendor name\n- Customer name\n- Phone\n- Email\n- VAT\n- Invoice Number\n\nVAT NUMBER:\nReturn ONLY the VAT registration number.\nNever return:\n- CR\n- PO\n- Invoice Number\n\nDATE:\nReturn ONLY the invoice date.\nPrefer:\n- Invoice Date\n- Issue Date\n- Tax Invoice Date\nDo NOT use:\n- Delivery Date\n- Supply Date\n- Due Date\nunless the invoice date is missing.\n\nAMOUNTS:\nExtract ONLY:\n- subtotal\n- tax_amount\n- total_amount\nIgnore:\n- Unit Price\n- Quantity\n- Line Total\n- Product Total\n- Discount %\n\nLANGUAGE:\nIf the text is Arabic, store it in the Arabic field.\nIf the text is English, store it in the English field.\nNever translate.\nNever duplicate Arabic into English.\nNever duplicate English into Arabic.\n\nNEGATIVE EXAMPLES:\n\nWrong vendor_name:\nABC Trading\nPO Box 123\nRiyadh\nCorrect vendor_name:\nABC Trading\n\nWrong document_number:\nInvoice Number\nPO Box 123\nCorrect document_number:\n736\n\nWrong address:\nABC Trading\nPO Box\nVAT Number\nPhone\nCorrect address:\nPO Box 123\nRiyadh\nSaudi Arabia\n\nOUTPUT FORMAT:\nReturn EXACTLY a JSON object with this structure:\n{{\n    \"document_number\": \"\",\n    \"vat_number\": \"\",\n    \"document_date\": \"\",\n    \"currency\": \"\",\n    \"vendor_name_ar\": \"\",\n    \"vendor_name_en\": \"\",\n    \"customer_name_ar\": \"\",\n    \"customer_name_en\": \"\",\n    \"address_ar\": \"\",\n    \"address_en\": \"\",\n    \"subtotal\": null,\n    \"tax_amount\": null,\n    \"total_amount\": null\n}}\n\nOCR TEXT:\n申しطع ـ مركز تسويق ـ أنظمة الأنابيب السعودي س.ت : 101-43928 P.O. Box : 52408 - Riyadh : 11563 Tel.: 011 4826006 - Fax : 011 4828742 VAT No.: 300041254700003 ـ ( ) أنظمة أنابيب متكاملة ( ) Pipe Fittings Stockist ـ رقم الأم رؤساء ORDER NO. ـ المشروع المشترك للاعمال المدني ـ اسم العميل CUST NAME ـ سعر الوحدة UNIT PRICE ـ رم ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب الطلب ـ حسب ال",
+    "raw_gemma_response": "{\"document_number\": null, \"vat_number\": \"300041254700003\", \"document_date\": null, \"currency\": null, \"vendor_name_ar\": \"مركز تسويق أنظمة الأنابيب السعودي\", \"vendor_name_en\": \"\", \"customer_name_ar\": \"\", \"customer_name_en\": \"\", \"address_ar\": \"P.O. Box : 52408 - Riyadh : 11563\", \"address_en\": null, \"subtotal\": null, \"tax_amount\": null, \"total_amount\": null}",
+    "parsed_json": {
+      "document_number": null,
+      "vat_number": "300041254700003",
+      "document_date": null,
+      "currency": null,
+      "vendor_name_ar": "مركز تسويق أنظمة الأنابيب السعودي",
+      "vendor_name_en": "",
+      "customer_name_ar": "",
+      "customer_name_en": "",
+      "address_ar": "P.O. Box : 52408 - Riyadh : 11563",
+      "address_en": null,
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null
+    },
+    "final_json": {
+      "document_number": "",
+      "vat_number": "300041254700003",
+      "document_date": "",
+      "currency": "",
+      "vendor_name_ar": "مركز تسويق أنظمة الأنابيب السعودي",
+      "vendor_name_en": "",
+      "customer_name_ar": "",
+      "customer_name_en": "",
+      "address_ar": "P.O. Box : 52408 - Riyadh : 11563",
+      "address_en": "",
+      "subtotal": null,
+      "tax_amount": null,
+      "total_amount": null,
+      "_confidence": 0.45,
+      "_validation": {
+        "valid": false,
+        "issues": [
+          {
+            "field": "document_number",
+            "message": "Invoice number is missing or empty.",
+            "severity": "error"
+          },
+          {
+            "field": "vendor_name_ar",
+            "message": "Field 'vendor_name_ar' value 'مركز تسويق أنظمة الأنابيب السعودي' is not present in OCR text.",
+            "severity": "warning"
+          },
+          {
+            "field": "document_date",
+            "message": "Document date is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "subtotal",
+            "message": "Amount field 'subtotal' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "tax_amount",
+            "message": "Amount field 'tax_amount' is missing or empty.",
+            "severity": "warning"
+          },
+          {
+            "field": "total_amount",
+            "message": "Amount field 'total_amount' is missing or empty.",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "timings": {
+      "ocr_time": 12.47746249998454,
+      "llm_time": 9.708061999990605,
+      "validation_time": 0.0015617000171914697,
+      "total_time": 27.27744109998457
+    },
+    "confidence": 0.45
+  }
+]

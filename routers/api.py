@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -222,13 +223,11 @@ async def upload_documents(request: Request) -> JSONResponse:
 
 
 def _combined_export_record(filename: str, document_type: str, extracted_json: dict[str, Any]) -> dict[str, Any]:
-    row: dict[str, Any] = {
-        "filename": filename,
-        "document_type": document_type,
-    }
-    row.update(InvoiceExcelMapper.to_row(extracted_json))
-    row.update(_flatten_for_excel(extracted_json))
-    return row
+    from services.export_service import map_to_canonical
+    canonical = map_to_canonical(extracted_json)
+    canonical["filename"] = filename
+    canonical["document_type"] = document_type
+    return canonical
 
 def _flatten_for_excel(value: Any, prefix: str = "") -> dict[str, Any]:
     if not isinstance(value, dict):
@@ -280,7 +279,9 @@ def download_temp_file(request: Request) -> FileResponse:
 
 
 @api_router.get("/documents/{document_id}/download/{export_format}")
-def download_document(document_id: int, export_format: str) -> FileResponse:
+def download_document(request: Request) -> FileResponse:
+    document_id = int(request.path_params["document_id"])
+    export_format = request.path_params["export_format"]
     with SessionLocal() as session:
         document = get_document(session, document_id)
         if document is None:
@@ -307,7 +308,8 @@ def download_document(document_id: int, export_format: str) -> FileResponse:
 
 
 @api_router.delete("/documents/{document_id}")
-def delete_document_api(document_id: int) -> JSONResponse:
+def delete_document_api(request: Request) -> JSONResponse:
+    document_id = int(request.path_params["document_id"])
     with SessionLocal() as session:
         if not delete_document(session, document_id):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
@@ -342,8 +344,105 @@ def bulk_export(request: Request) -> FileResponse:
 
 
 @api_router.post("/sessions/{session_id}/delete")
-def delete_session_api(session_id: int) -> JSONResponse:
+def delete_session_api(request: Request) -> JSONResponse:
+    session_id = int(request.path_params["session_id"])
     with SessionLocal() as session:
         if not delete_processing_session(session, session_id):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
         return JSONResponse({"message": "Session deleted"})
+
+
+@api_router.post("/documents/{document_id}/review")
+async def review_document_api(request: Request) -> JSONResponse:
+    document_id = int(request.path_params["document_id"])
+    payload_data = await request.json()
+    status_value = payload_data.get("status", "Approved")
+    field_updates = payload_data.get("fields", {})
+    
+    with SessionLocal() as session:
+        document = session.get(Document, document_id)
+        if not document:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+            
+        document.status = status_value
+        
+        # Load current extracted JSON
+        current_extracted = json.loads(document.extracted_json or "{}")
+        
+        # Update the fields
+        for k, v in field_updates.items():
+            current_extracted[k] = v
+            # Keep numeric type for financials
+            if k in ("subtotal", "tax_amount", "total_amount"):
+                from services.qwen_llm_extractor import normalize_number
+                current_extracted[k] = normalize_number(v)
+            
+            # Keep nested fields in sync
+            if k == "document_number":
+                if "document" not in current_extracted:
+                    current_extracted["document"] = {}
+                current_extracted["document"]["number"] = v
+            elif k == "document_date":
+                if "document" not in current_extracted:
+                    current_extracted["document"] = {}
+                current_extracted["document"]["date"] = v
+            elif k == "currency":
+                if "document" not in current_extracted:
+                    current_extracted["document"] = {}
+                current_extracted["document"]["currency"] = v
+            elif k == "purchase_order":
+                if "metadata" not in current_extracted:
+                    current_extracted["metadata"] = {}
+                current_extracted["metadata"]["purchase_order"] = v
+            elif k == "reference_number":
+                if "metadata" not in current_extracted:
+                    current_extracted["metadata"] = {}
+                current_extracted["metadata"]["reference_number"] = v
+            elif k == "vendor_name":
+                if "vendor" not in current_extracted:
+                    current_extracted["vendor"] = {}
+                current_extracted["vendor"]["name_en"] = v
+            elif k == "customer_name":
+                if "customer" not in current_extracted:
+                    current_extracted["customer"] = {}
+                current_extracted["customer"]["name_en"] = v
+
+        document.extracted_json = json.dumps(current_extracted, ensure_ascii=False)
+        document.json_output = json.dumps(current_extracted, ensure_ascii=False)
+        
+        # Recalculate validation status / field confidences (all field confidences are now 1.0 since user reviewed/corrected them!)
+        validation_payload = json.loads(document.validation_result or "{}")
+        validation_payload["valid"] = (status_value == "Approved")
+        validation_payload["issues"] = []
+        validation_payload["field_states"] = {k: "FOUND_AND_VALID" for k in field_updates}
+        validation_payload["field_confidences"] = {k: 1.0 for k in field_updates}
+        document.validation_result = json.dumps(validation_payload, ensure_ascii=False)
+        
+        # Set overall confidence to 1.0
+        document.confidence = 1.0
+        
+        session.commit()
+        
+        # Regenerate session Excel export to keep in sync
+        session_id = document.session_id
+        if session_id:
+            db_session = session.get(ProcessingSession, session_id)
+            if db_session:
+                documents_in_session = db_session.documents
+                combined_records = []
+                for doc in documents_in_session:
+                    doc_extracted = json.loads(doc.extracted_json or "{}")
+                    combined_records.append(
+                        _combined_export_record(
+                            filename=doc.original_filename or doc.filename,
+                            document_type=doc.document_type,
+                            extracted_json=doc_extracted
+                        )
+                    )
+                excel_path = export_service.export_uploaded_records(combined_records, f"combined_export_{session_id}")
+                db_session.excel_file_path = str(excel_path)
+                for doc in documents_in_session:
+                    doc.excel_file_path = str(excel_path)
+                session.commit()
+                
+        return JSONResponse({"message": "Document reviewed successfully", "status": status_value})

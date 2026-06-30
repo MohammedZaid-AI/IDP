@@ -3,7 +3,7 @@
   "messages": [
     {
       "role": "user",
-      "content": "transcribe",
+      "content": "You are an OCR engine.\n\nYour only job is to read the document.\n\nReturn ONLY the visible text exactly as it appears.\n\nRequirements:\n\n- Preserve Arabic exactly.\n- Preserve English exactly.\n- Preserve numbers exactly.\n- Preserve reading order.\n- Preserve line breaks.\n- Preserve labels and values.\n\nDo NOT interpret the document.\n\nDo NOT summarize.\n\nDo NOT classify.\n\nDo NOT translate.\n\nDo NOT generate HTML.\n\nDo NOT generate XML.\n\nDo NOT generate Markdown.\n\nDo NOT generate JSON.\n\nDo NOT generate tables.\n\nDo NOT generate bounding boxes.\n\nDo NOT generate layout tags.\n\nReturn only plain UTF-8 text.",
       "images": [
         {
           "attached": "YES",
@@ -17,6 +17,6 @@
   "stream": false,
   "options": {
     "temperature": 0.0,
-    "num_predict": 850
+    "num_predict": 2048
   }
 }

@@ -234,6 +234,32 @@ def logout_action(request: Request):
     return response
 
 
+@auth_router.get("/auth/dev-login")
+def dev_login(request: Request):
+    """Hidden route for local browser testing / development bypass."""
+    with SessionLocal() as db_session:
+        user = db_session.execute(select(User)).scalars().first()
+        if not user:
+            user = User(
+                google_id="demo-google-id",
+                email="demo@example.com",
+                full_name="Demo User",
+                profile_picture=None
+            )
+            db_session.add(user)
+            db_session.commit()
+            db_session.refresh(user)
+        
+        request.session["user_id"] = user.id
+        request.session["email"] = user.email
+        request.session["name"] = user.full_name
+        request.session["picture"] = user.profile_picture or ""
+        
+        response = RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
+        response.set_cookie("user_name", user.full_name)
+        return response
+
+
 
 
 

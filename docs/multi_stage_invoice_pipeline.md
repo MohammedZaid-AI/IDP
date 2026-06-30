@@ -22,7 +22,7 @@ Recommended runtime engine flag:
 
 ```env
 EXTRACTION_ENGINE=multi_stage_qwen
-OLLAMA_FIELD_EXTRACTION_MODEL=qwen2.5:3b
+OLLAMA_FIELD_EXTRACTION_MODEL=gemma4:e4b
 ```
 
 The existing OCR remains the source of truth. The LLM is only allowed to select and normalize values already present in OCR text.
